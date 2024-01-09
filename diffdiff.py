@@ -44,8 +44,8 @@ def write_line(line):
 diffionaries = {}
 for diff in diffs:
 	with open(diff, "r") as input_diff:
-		sample = input_diff.readline().strip().strip(">")
-		data = input_diff.readlines()[1:]
+		sample = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
+		data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
 	keys = [int(line.split()[1]) for line in data]   # position is unique, so they are the keys
 	values = [str(line.split()[0]) for line in data] # SNPs are not unique
 	if args.ignore_masks:
@@ -113,7 +113,7 @@ print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mism
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
 
 
-# TODO: fix backmasking dropping the first SNP and sample name
+# TODO: fix backmasking dropping the sample name
 
 if args.backmask:
 	for input_diff_file in diffs:
