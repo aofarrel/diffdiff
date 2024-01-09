@@ -31,8 +31,11 @@ C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
 C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
 C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 
-with open(args.input_file_with_diff_paths) as pile_of_diffs:
-	diffs = [line.strip("\n") for line in pile_of_diffs.readlines()]
+class InputDiff:
+	def __init__(self, path: str, sample: str, data: dict):
+		self.path = path  # also the key in diffionaries
+		self.sample = sample
+		self.data = data
 
 def write_line(line):
 	if args.alignment_outfile:  # ie, if not None
@@ -42,24 +45,28 @@ def write_line(line):
 		print(line)
 
 diffionaries = {}
-for diff in diffs:
-	with open(diff, "r") as input_diff:
-		sample = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
-		data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
-	keys = [int(line.split()[1]) for line in data]   # position is unique, so they are the keys
-	values = [str(line.split()[0]) for line in data] # SNPs are not unique
+
+with open(args.input_file_with_diff_paths) as pile_of_diffs:
+	diff_files = [line.strip("\n") for line in pile_of_diffs.readlines()]
+
+for diff_file in diff_files:
+	with open(diff_file, "r") as input_diff:
+		sample_name = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
+		diff_data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
+	keys = [int(line.split()[1]) for line in diff_data]   # position is unique, so they are the keys
+	values = [str(line.split()[0]) for line in diff_data] # SNPs are not unique
 	if args.ignore_masks:
-		this_diff = {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"}
+		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
 	else:
-		this_diff = {keys[i]: values[i] for i in range(len(keys))}
-	diffionaries[diff] = this_diff
-print(f"Converted {len(diffs)} diffs to dictionaries.")
+		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
+	diffionaries[diff_file] = this_diff
+print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
 all_positions = []
-for i in range(0, len(diffs)):
-	this_sample_key = diffs[i]
-	this_sample_dic = diffionaries[this_sample_key]
-	for position in this_sample_dic:
+for i in range(0, len(diff_files)):
+	this_sample_path = diff_files[i]
+	this_sample = diffionaries[this_sample_path]
+	for position in this_sample.data:
 		if position not in all_positions:
 			all_positions.append(position)
 
@@ -116,7 +123,7 @@ print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} pos
 # TODO: fix backmasking dropping the sample name
 
 if args.backmask:
-	for input_diff_file in diffs:
+	for input_diff_file in diff_files:
 		this_sample_dic = diffionaries[input_diff_file]
 		this_sample_backmasked = []
 		with open(f"{input_diff_file}.backmask.diff", "w") as backmasked_diff:
