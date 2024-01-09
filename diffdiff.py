@@ -8,6 +8,7 @@ RED = '\033[91m'
 END = '\033[0m'
 HIGHLIGHT_CYAN = '\u001b[48;5;87m'
 HIGHLIGHT_GREEN = '\u001b[48;5;47m'
+HIGHLIGHT_GRAY = '\u001b[100m'
 
 parser = argparse.ArgumentParser(description="diffdiff - diff your diff files")
 parser.add_argument("input_file_with_diff_paths",
@@ -19,6 +20,8 @@ parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
 parser.add_argument("-c", "--colors", action="store_true",
 	help=f"Highlight SNP-ref mismatches in {HIGHLIGHT_CYAN}cyan{END} and SNP-SNP mismatches in {HIGHLIGHT_GREEN}green{END}, "
 	f"with specific positions marked in {RED}red{END}")
+parser.add_argument("-d", "--drop_masks", action="store_true",
+	help="Drop masked positions. This effectively makes masked positions and ref positions get treated the same.")
 args = parser.parse_args()
 
 C_BLACK = BLACK if args.colors else ''
@@ -26,6 +29,7 @@ C_RED = RED if args.colors else ''
 C_END = END if args.colors else ''
 C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
 C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
+C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 
 with open(args.input_file_with_diff_paths) as pile_of_diffs:
 	diffs = [line.strip("\n") for line in pile_of_diffs.readlines()]
@@ -44,7 +48,10 @@ for diff in diffs:
 		data = input_diff.readlines()[1:]
 	keys = [int(line.split()[1]) for line in data]   # position is unique, so they are the keys
 	values = [str(line.split()[0]) for line in data] # SNPs are not unique
-	this_diff = {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"}
+	if args.drop_masks:
+		this_diff = {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"}
+	else:
+		this_diff = {keys[i]: values[i] for i in range(len(keys))}
 	diffionaries[diff] = this_diff
 print(f"Converted {len(diffs)} diffs to dictionaries.")
 
@@ -58,20 +65,28 @@ for i in range(0, len(diffs)):
 
 incongruent_positions = []
 for position in all_positions:
-	highlight_this_position = False
+	missing_data = False
 	each_sample = []
 	for sample, positions in diffionaries.items():
 		if position not in positions.keys():
-			highlight_this_position = True
+			# if data for this position is not in the current sample
 			if position not in incongruent_positions: incongruent_positions.append(position)
-			each_sample.append(f"{C_RED}-{C_BLACK}")  # purposely not using END so the highlight continues
+			if args.drop_masks:
+				# this position is missing information either because it is ref or masked
+				missing_data = True
+				each_sample.append(f"{C_RED}?{C_BLACK}")  # purposely not using END so the highlight continues
+			else:
+				# this sample is missing information because it is ref
+				each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
 		else:
 			each_sample.append(positions[position])
 	samples_at_this_position = ''.join(sample for sample in each_sample)
 
 	# print in place -- likely more efficient then going back later
-	if highlight_this_position:
+	if missing_data:
 		write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+	elif "-" in samples_at_this_position and not missing_data:
+		write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	else:
@@ -81,6 +96,13 @@ for sample, diff in diffionaries.items():
 	print(f"{sample} calls {len(diff)} SNPs")
 
 print(f"\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch.\n")
+
+
+#### add information about which mismatch is which
+
+
+
+
 
 if args.backmask:
 	for input_diff_file in diffs:
