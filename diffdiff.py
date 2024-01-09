@@ -133,19 +133,16 @@ print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches")
 print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
 
-
-# TODO: fix backmasking dropping the sample name
-
 if args.backmask:
-	for input_diff_file in diff_files:
-		this_sample_dic = diffionaries[input_diff_file]
+	for input_diff_object in diffionaries:
 		this_sample_backmasked = []
-		with open(f"{input_diff_file}.backmask.diff", "w") as backmasked_diff:
-			for position in this_sample_dic:
+		with open(f"{input_diff_object.path}.backmask.diff", "w") as backmasked_diff:
+			backmasked_diff.write(f">{input_diff_object.sample}\n")
+			for position in input_diff_object.data:
 				if position in masked_incongruence_positions:
 				  backmasked_diff.write(f"-\t{position}\t1\n")
 				  this_sample_backmasked.append(position)
 				else:
-				  backmasked_diff.write(f"{this_sample_dic[position]}\t{position}\t1\n")
-		print(f"For {input_diff_file}, backmasked {len(this_sample_backmasked)} positions: ")
+				  backmasked_diff.write(f"{input_diff_object.data[position]}\t{position}\t1\n")
+		print(f"For {input_diff_object.sample}, backmasked {len(this_sample_backmasked)} positions: ")
 		print(*this_sample_backmasked, end="\n\n")
