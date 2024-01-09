@@ -33,7 +33,7 @@ C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 
 class InputDiff:
 	def __init__(self, path: str, sample: str, data: dict):
-		self.path = path  # also the key in diffionaries
+		self.path = path  # previously acted as the key in diffionaries
 		self.sample = sample
 		self.data = data
 
@@ -44,7 +44,7 @@ def write_line(line):
 	else:
 		print(line)
 
-diffionaries = {}
+diffionaries = []
 
 with open(args.input_file_with_diff_paths) as pile_of_diffs:
 	diff_files = [line.strip("\n") for line in pile_of_diffs.readlines()]
@@ -59,13 +59,12 @@ for diff_file in diff_files:
 		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
 	else:
 		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
-	diffionaries[diff_file] = this_diff
+	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
 all_positions = []
-for i in range(0, len(diff_files)):
-	this_sample_path = diff_files[i]
-	this_sample = diffionaries[this_sample_path]
+for i in range(0, len(diffionaries)):
+	this_sample = diffionaries[i]
 	for position in this_sample.data:
 		if position not in all_positions:
 			all_positions.append(position)
@@ -77,8 +76,8 @@ masked_total_positions = []        # masked_incongruence + positions where ALL s
 for position in all_positions:
 	missing_data = False
 	each_sample = []
-	for sample, positions in diffionaries.items():
-		if position not in positions.keys():
+	for input_diff in diffionaries:
+		if position not in input_diff.data.keys():
 			# if data for this position is not in the current sample
 			if position not in incongruent_positions: incongruent_positions.append(position)
 			if args.ignore_masks:
@@ -89,7 +88,7 @@ for position in all_positions:
 				# this sample is missing information because it is ref
 				each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
 		else:
-			each_sample.append(positions[position])
+			each_sample.append(input_diff.data[position])
 	samples_at_this_position = ''.join(sample for sample in each_sample)
 
 	# print in place -- likely more efficient then going back later
@@ -111,10 +110,15 @@ for position in all_positions:
 	else:
 		write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 
-for sample, diff in diffionaries.items():
-	print(f"{sample} calls {len(diff)} SNPs")
+for input_diff in diffionaries:
+	if args.ignore_masks:
+		print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs")
+	else:
+		print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
 
-print(f"\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch or mask.")
+print(f"\nComparing across all diffs:\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch or mask.")
+# TODO: these don't add up to len(incongruent_positions) because incongruent_positions counts each incongruence only once across all
+# samples. That's fine, but it is confusing.
 print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches")
 print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
