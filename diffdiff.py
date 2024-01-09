@@ -79,7 +79,6 @@ for position in all_positions:
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
 			# if data for this position is not in the current sample
-			if position not in incongruent_positions: incongruent_positions.append(position)
 			if args.ignore_masks:
 				# this position is missing information either because it is ref or masked
 				missing_data = True
@@ -93,19 +92,26 @@ for position in all_positions:
 
 	# print in place -- likely more efficient then going back later
 	if missing_data:
-		masked_incongruence_positions.append(position)
+		# This position is masked in AT LEAST ONE sample, and ignore_masks is true
+		if position not in incongruent_positions: incongruent_positions.append(position)
+		if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
 		write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	elif "-" in samples_at_this_position and not missing_data:
-		masked_total_positions.append(position)
+		# This position is masked in AT LEAST ONE sample, and ignore_masks is false
+		if position not in incongruent_positions: incongruent_positions.append(position)
+		if position not in masked_total_positions: masked_total_positions.append(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-			masked_incongruence_positions.append(position)
+			# This position is masked in ALL samples, and ignore_masks is false
+			if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
 			write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
+			# This position is masked in 1≤x≤n-1 samples
 			write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		# TODO: This seems to be a perfectly functional SNP-mismatch checker, but I don't actually
 		# remember HOW it works.
-		snp_incongrence_positions.append(position)
+		if position not in incongruent_positions: incongruent_positions.append(position)
+		if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
 		write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	else:
 		write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
@@ -116,9 +122,13 @@ for input_diff in diffionaries:
 	else:
 		print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
 
+assert len(incongruent_positions) == len(set(incongruent_positions))
+assert len(snp_incongrence_positions) == len(set(snp_incongrence_positions))
+assert len(masked_incongruence_positions) == len(set(masked_incongruence_positions))
+assert len(masked_total_positions) == len(set(masked_total_positions))
+assert len(masked_total_positions) + len(snp_incongrence_positions) == len(incongruent_positions)
+
 print(f"\nComparing across all diffs:\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch or mask.")
-# TODO: these don't add up to len(incongruent_positions) because incongruent_positions counts each incongruence only once across all
-# samples. That's fine, but it is confusing.
 print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches")
 print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
