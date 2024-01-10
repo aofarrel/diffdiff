@@ -1,8 +1,5 @@
 # pylint: disable=W0311,W1514,C0103,C0321,C0301
 
-
-# TODO: when not dropping dashes, dashes that are made to cover multiple positions get turned into just one
-
 import argparse
 
 BLACK = '\033[30m'
@@ -40,6 +37,14 @@ class Diff:
 		self.path = path  # previously acted as the key in diffionaries
 		self.sample = sample
 		self.data = data
+		
+		# the data dictionary looks like this
+		# {123: "A", 125: "T"}
+	
+	def print_all(self):
+		print(f">{self.sample}")
+		for positions, snps in self.data.items():
+			print(f"{positions}\t{snps}\t1")
 
 def write_line(line):
 	if args.alignment_outfile:  # ie, if not None
@@ -58,8 +63,20 @@ for diff_file in diff_files:
 	with open(diff_file, "r") as input_diff:
 		sample_name = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
 		diff_data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
-	keys = [int(line.split()[1]) for line in diff_data]   # position is unique, so they are the keys
-	values = [str(line.split()[0]) for line in diff_data] # SNPs are not unique
+	
+	keys = []
+	values = []
+	for line in diff_data:
+		key = int(line.split()[1])     # position is unique, so they are the keys in the dictionary
+		value = str(line.split()[0])   # SNP/mask
+		repeat = int(line.split()[2])  # the third column in the diff tells us if the SNP/mask repeats
+		if repeat != 1:
+			for j in range(0, repeat):
+				keys.append(key+j)
+				values.append(value)
+		else:
+			keys.append(key)
+			values.append(value)
 	if args.ignore_masks:
 		this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
 	else:
@@ -67,12 +84,15 @@ for diff_file in diff_files:
 	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
+if args.verbose: [diff.print_all() for diff in diffionaries]
+
 all_positions = []
 for i in range(0, len(diffionaries)):
 	this_sample = diffionaries[i]
 	for position in this_sample.data:
 		if position not in all_positions:
 			all_positions.append(position)
+all_positions.sort()
 
 incongruent_positions = []
 snp_incongrence_positions = []     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
@@ -113,8 +133,6 @@ for position in all_positions:
 			# This position is masked in 1≤x≤n-1 samples
 			write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
-		# TODO: This seems to be a perfectly functional SNP-mismatch checker, but I don't actually
-		# remember HOW it works.
 		if position not in incongruent_positions: incongruent_positions.append(position)
 		if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
 		write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
