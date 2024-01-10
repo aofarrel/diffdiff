@@ -1,0 +1,3 @@
+./tests/x.diff
+./tests/y.diff
+./tests/z.diff
