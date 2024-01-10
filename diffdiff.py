@@ -53,7 +53,6 @@ def write_line(line):
 	else:
 		print(line)
 
-
 diffionaries = []
 
 with open(args.input_file_with_diff_paths) as pile_of_diffs:
@@ -117,10 +116,10 @@ for position in all_positions:
 
 	# print in place -- likely more efficient then going back later
 	if missing_data:
-		# This position is masked in AT LEAST ONE sample, and ignore_masks is true
+		# This position is "masked" in AT LEAST ONE sample, and ignore_masks is true
 		if position not in incongruent_positions: incongruent_positions.append(position)
 		if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
-		write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+		write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	elif "-" in samples_at_this_position and not missing_data:
 		# This position is masked in AT LEAST ONE sample, and ignore_masks is false
 		if position not in incongruent_positions: incongruent_positions.append(position)
@@ -173,7 +172,7 @@ if args.backmask:
 				output_data[position] = "-"
 				backmasked_positions.append(position)
 			else:
-				print(f"Leaving {input_diff_object.data[position]} in place at position {position}")
+				if args.verbose: print(f"Leaving {input_diff_object.data[position]} in place at position {position}")
 				output_data[position] = input_diff_object.data[position]
 				retained_positions.append(position)
 		for position in input_diff_object.data.keys():
