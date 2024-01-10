@@ -1,5 +1,7 @@
-# this comparison will drop dashes!
 # pylint: disable=W0311,W1514,C0103,C0321,C0301
+
+
+# TODO: when not dropping dashes, dashes that are made to cover multiple positions get turned into just one
 
 import argparse
 
@@ -22,6 +24,8 @@ parser.add_argument("-c", "--colors", action="store_true",
 	f"with specific positions marked in {RED}red{END}")
 parser.add_argument("-i", "--ignore_masks", action="store_true",
 	help="Ignore masked positions. This effectively makes masked positions and ref positions get treated the same.")
+parser.add_argument("-v", "--verbose", action="store_true",
+	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
 args = parser.parse_args()
 
 C_BLACK = BLACK if args.colors else ''
@@ -31,7 +35,7 @@ C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
 C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
 C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 
-class InputDiff:
+class Diff:
 	def __init__(self, path: str, sample: str, data: dict):
 		self.path = path  # previously acted as the key in diffionaries
 		self.sample = sample
@@ -43,6 +47,7 @@ def write_line(line):
 			f.write(line+"\n")
 	else:
 		print(line)
+
 
 diffionaries = []
 
@@ -56,9 +61,9 @@ for diff_file in diff_files:
 	keys = [int(line.split()[1]) for line in diff_data]   # position is unique, so they are the keys
 	values = [str(line.split()[0]) for line in diff_data] # SNPs are not unique
 	if args.ignore_masks:
-		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
+		this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
 	else:
-		this_diff = InputDiff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
+		this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
 	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
@@ -134,15 +139,37 @@ print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mism
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
 
 if args.backmask:
+	backmasked_diffs = []
 	for input_diff_object in diffionaries:
-		this_sample_backmasked = []
-		with open(f"{input_diff_object.path}.backmask.diff", "w") as backmasked_diff:
-			backmasked_diff.write(f">{input_diff_object.sample}\n")
-			for position in input_diff_object.data:
-				if position in masked_incongruence_positions:
-				  backmasked_diff.write(f"-\t{position}\t1\n")
-				  this_sample_backmasked.append(position)
-				else:
-				  backmasked_diff.write(f"{input_diff_object.data[position]}\t{position}\t1\n")
-		print(f"For {input_diff_object.sample}, backmasked {len(this_sample_backmasked)} positions: ")
-		print(*this_sample_backmasked, end="\n\n")
+		if args.verbose: print(f"Backmasking {input_diff_object.sample}...")
+		backmasked_positions = []
+		retained_positions = []
+		output_data = {}
+		for position in masked_incongruence_positions:
+			if position not in input_diff_object.data.keys():
+				if args.verbose: print(f"Masking reference call at position {position}")
+				output_data[position] = "-"
+				backmasked_positions.append(position)
+			elif input_diff_object.data[position] != "-":
+				if args.verbose: print(f"Masking {input_diff_object.data[position]} SNP at position {position}")
+				output_data[position] = "-"
+				backmasked_positions.append(position)
+			else:
+				print(f"Leaving {input_diff_object.data[position]} in place at position {position}")
+				output_data[position] = input_diff_object.data[position]
+				retained_positions.append(position)
+		for position in input_diff_object.data.keys():
+			if position not in output_data.keys():
+				output_data[position] = input_diff_object.data[position]
+		new_diff_path = f"{input_diff_object.path}.backmask.diff"
+		new_diff_sample = f"[BM]{input_diff_object.sample}"
+		new_diff_data = dict(sorted(output_data.items()))
+		new_diff = Diff(new_diff_path, new_diff_sample, new_diff_data)
+		backmasked_diffs.append(new_diff)
+
+		with open(new_diff.path, "w") as backmasked_diff:
+			backmasked_diff.write(f">{new_diff.sample}\n")
+			for position in new_diff.data.keys():
+				backmasked_diff.write(f"{new_diff.data[position]}\t{position}\t1\n")
+		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions: ")
+		print(*backmasked_positions, end="\n\n")
