@@ -17,10 +17,11 @@ parser.add_argument("-b", "--backmask", action="store_true",
 parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
 	help="Filename of alignment (if not defined, print to stdout)")
 parser.add_argument("-c", "--colors", action="store_true",
-	help=f"Highlight SNP-ref mismatches in {HIGHLIGHT_CYAN}cyan{END} and SNP-SNP mismatches in {HIGHLIGHT_GREEN}green{END}, "
-	f"with specific positions marked in {RED}red{END}")
+	help=f"Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN}cyan{END}, SNP-ref mismatches in {HIGHLIGHT_GREEN}green{END}, "
+	f"and place where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}.")
 parser.add_argument("-i", "--ignore_masks", action="store_true",
-	help="Ignore masked positions. This effectively makes masked positions and ref positions get treated the same.")
+	help="Ignore masked positions. This effectively makes masked positions and ref positions get treated the same."
+	"If -c, all positions that have at least one ref or - will be highlighted gray.")
 parser.add_argument("-v", "--verbose", action="store_true",
 	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
 args = parser.parse_args()
@@ -32,26 +33,27 @@ C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
 C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
 C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 
+def write_line(some_line):
+	"""Write one line to either the alignment outfile or stdout as necessary"""
+	if args.alignment_outfile:  # ie, if not None
+		with open(args.alignment_outfile, "a") as f:
+			f.write(some_line+"\n")
+	else:
+		print(some_line)
+
 class Diff:
+	"""Represents a diff file"""
 	def __init__(self, path: str, sample: str, data: dict):
 		self.path = path  # previously acted as the key in diffionaries
 		self.sample = sample
 		self.data = data
-		
 		# the data dictionary looks like this
 		# {123: "A", 125: "T"}
-	
+
 	def print_all(self):
 		print(f">{self.sample}")
 		for positions, snps in self.data.items():
 			print(f"{positions}\t{snps}\t1")
-
-def write_line(line):
-	if args.alignment_outfile:  # ie, if not None
-		with open(args.alignment_outfile, "a") as f:
-			f.write(line+"\n")
-	else:
-		print(line)
 
 diffionaries = []
 
@@ -62,7 +64,7 @@ for diff_file in diff_files:
 	with open(diff_file, "r") as input_diff:
 		sample_name = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
 		diff_data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
-	
+
 	keys = []
 	values = []
 	for line in diff_data:
@@ -86,9 +88,8 @@ print(f"Converted {len(diff_files)} diffs to dictionaries.")
 if args.verbose: [diff.print_all() for diff in diffionaries]
 
 all_positions = []
-for i in range(0, len(diffionaries)):
-	this_sample = diffionaries[i]
-	for position in this_sample.data:
+for i, input_diff in enumerate(diffionaries):
+	for position in input_diff.data:
 		if position not in all_positions:
 			all_positions.append(position)
 all_positions.sort()
@@ -134,7 +135,10 @@ for position in all_positions:
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		if position not in incongruent_positions: incongruent_positions.append(position)
 		if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
-		write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+		if "R" not in samples_at_this_position:
+			write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+		else:
+			write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 	else:
 		write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 
@@ -176,7 +180,7 @@ if args.backmask:
 				output_data[position] = input_diff_object.data[position]
 				retained_positions.append(position)
 		for position in input_diff_object.data.keys():
-			if position not in output_data.keys():
+			if position not in output_data:
 				output_data[position] = input_diff_object.data[position]
 		new_diff_path = f"{input_diff_object.path}.backmask.diff"
 		new_diff_sample = f"[BM]{input_diff_object.sample}"
@@ -190,7 +194,7 @@ if args.backmask:
 				backmasked_diff.write(f"{new_diff.data[position]}\t{position}\t1\n")
 		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions: ")
 		print(*backmasked_positions, end="\n\n")
-	
+
 	print("New realignment of backmasked diffs:")
 	for position in all_positions:
 		each_sample = []

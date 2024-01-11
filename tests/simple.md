@@ -24,3 +24,5 @@
 | 173 | R | - | R | y's implict mask                 |
 | 174 | R | - | R | y's implict mask                 |
 | 174 | R | - | R | y's implict mask                 |
+| 175 | G | G | C | highlighting SNP-SNP mismatch    |
+| 176 | G | R | C | x and z's implict SNPs           |
