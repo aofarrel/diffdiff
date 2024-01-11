@@ -19,9 +19,6 @@ parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
 parser.add_argument("-c", "--colors", action="store_true",
 	help=f"Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN}cyan{END}, SNP-ref mismatches in {HIGHLIGHT_GREEN}green{END}, "
 	f"and place where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}.")
-parser.add_argument("-i", "--ignore_masks", action="store_true",
-	help="Ignore masked positions. This effectively makes masked positions and ref positions get treated the same."
-	"If -c, all positions that have at least one ref or - will be highlighted gray.")
 parser.add_argument("-v", "--verbose", action="store_true",
 	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
 args = parser.parse_args()
@@ -78,10 +75,7 @@ for diff_file in diff_files:
 		else:
 			keys.append(key)
 			values.append(value)
-	if args.ignore_masks:
-		this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys)) if values[i] != "-"})
-	else:
-		this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
+	this_diff = Diff(diff_file, sample_name, {keys[i]: values[i] for i in range(len(keys))})
 	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
@@ -96,37 +90,26 @@ all_positions.sort()
 
 incongruent_positions = []
 snp_incongrence_positions = []     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
-masked_incongruence_positions = [] # eg, one sample is G SNP and another is masked, or (if !ignore_masks) one is ref and another is masked
+masked_incongruence_positions = [] # eg, one sample is G SNP and another is masked, or one is ref and another is masked
 masked_total_positions = []        # masked_incongruence + positions where ALL samples get masked
 for position in all_positions:
 	missing_data = False
 	each_sample = []
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
-			# if data for this position is not in the current sample
-			if args.ignore_masks:
-				# this position is missing information either because it is ref or masked
-				missing_data = True
-				each_sample.append(f"{C_RED}?{C_BLACK}")  # purposely not using END so the highlight continues
-			else:
-				# this sample is missing information because it is ref
-				each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
+			# this sample is missing information because it is ref
+			each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
 		else:
 			each_sample.append(input_diff.data[position])
 	samples_at_this_position = ''.join(sample for sample in each_sample)
 
 	# print in place -- likely more efficient then going back later
-	if missing_data:
-		# This position is "masked" in AT LEAST ONE sample, and ignore_masks is true
-		if position not in incongruent_positions: incongruent_positions.append(position)
-		if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
-		write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
-	elif "-" in samples_at_this_position and not missing_data:
-		# This position is masked in AT LEAST ONE sample, and ignore_masks is false
+	if "-" in samples_at_this_position:
+		# This position is masked in AT LEAST ONE sample
 		if position not in incongruent_positions: incongruent_positions.append(position)
 		if position not in masked_total_positions: masked_total_positions.append(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-			# This position is masked in ALL samples, and ignore_masks is false
+			# This position is masked in ALL sample
 			if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
 			write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
@@ -143,10 +126,7 @@ for position in all_positions:
 		write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 
 for input_diff in diffionaries:
-	if args.ignore_masks:
-		print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs")
-	else:
-		print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
+	print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
 
 assert len(incongruent_positions) == len(set(incongruent_positions))
 assert len(snp_incongrence_positions) == len(set(snp_incongrence_positions))
@@ -200,13 +180,8 @@ if args.backmask:
 		each_sample = []
 		for backmasked_diff in backmasked_diffs:
 			if position not in backmasked_diff.data.keys():
-				# if data for this position is not in the current sample
-				if args.ignore_masks:
-					# this position is missing information either because it is ref or masked
-					each_sample.append(f"{C_RED}?{C_BLACK}")  # purposely not using END so the highlight continues
-				else:
-					# this sample is missing information because it is ref
-					each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
+				# this sample is missing information because it is ref
+				each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
 			else:
 				each_sample.append(backmasked_diff.data[position])
 		samples_at_this_position = ''.join(sample for sample in each_sample)
