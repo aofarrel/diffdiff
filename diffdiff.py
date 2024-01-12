@@ -86,20 +86,19 @@ print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
 if args.veryverbose: [diff.print_all() for diff in diffionaries]
 
-all_positions = []
+all_positions = set()
 for i, input_diff in enumerate(diffionaries):
-	for position in tqdm(input_diff.data):
+	for position in input_diff.data:
 		if position not in all_positions:
-			all_positions.append(position)
-all_positions.sort()
+			all_positions.add(position)
+all_positions = sorted(all_positions)
 print(f"Processed {len(all_positions)} sites.")
 
 incongruent_positions = []
 snp_incongrence_positions = []     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
 masked_incongruence_positions = [] # eg, one sample is G SNP and another is masked, or one is ref and another is masked
 masked_total_positions = []        # masked_incongruence + positions where ALL samples get masked
-for position in all_positions:
-	missing_data = False
+for position in tqdm(all_positions, disable=args.verbose):
 	each_sample = []
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
@@ -109,28 +108,27 @@ for position in all_positions:
 			each_sample.append(input_diff.data[position])
 	samples_at_this_position = ''.join(sample for sample in each_sample)
 
-	if args.verbose:
-		# print in place -- likely more efficient then going back later
-		if "-" in samples_at_this_position:
-			# This position is masked in AT LEAST ONE sample
-			if position not in incongruent_positions: incongruent_positions.append(position)
-			if position not in masked_total_positions: masked_total_positions.append(position)
-			if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-				# This position is masked in ALL sample
-				if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
-				write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
-			else:
-				# This position is masked in 1≤x≤n-1 samples
-				write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
-		elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
-			if position not in incongruent_positions: incongruent_positions.append(position)
-			if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
-			if "R" not in samples_at_this_position:
-				write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
-			else:
-				write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+	# print in place -- likely more efficient then going back later
+	if "-" in samples_at_this_position:
+		# This position is masked in AT LEAST ONE sample
+		if position not in incongruent_positions: incongruent_positions.append(position)
+		if position not in masked_total_positions: masked_total_positions.append(position)
+		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
+			# This position is masked in ALL sample
+			if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
+			if args.verbose: write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
-			write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
+			# This position is masked in 1≤x≤n-1 samples
+			if args.verbose: write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
+	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
+		if position not in incongruent_positions: incongruent_positions.append(position)
+		if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
+		if "R" not in samples_at_this_position:
+			if args.verbose: write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+		else:
+			if args.verbose: write_line(f"{C_HIGHLIGHT_GREEN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
+	else:
+		if args.verbose: write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 
 for input_diff in diffionaries:
 	print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
@@ -142,7 +140,7 @@ assert len(masked_total_positions) == len(set(masked_total_positions))
 assert len(masked_total_positions) + len(snp_incongrence_positions) == len(incongruent_positions)
 
 print(f"\nComparing across all diffs:\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch or mask.")
-print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches")
+print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches (ref-SNP or SNP-SNP)")
 print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
 
