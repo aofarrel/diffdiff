@@ -114,11 +114,11 @@ for position in tqdm(all_positions, disable=args.verbose):
 		incongruent_positions.add(position)
 		masked_total_positions.add(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-			# This position is masked in ALL samples
+			# This position is masked in 1≤x≤n-1 samples
 			masked_incongruence_positions.add(position)
 			if args.verbose: write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
-			# This position is masked in 1≤x≤n-1 samples
+			# This position is masked in ALL samples
 			if args.verbose: write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		incongruent_positions.add(position)
