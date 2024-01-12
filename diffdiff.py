@@ -94,10 +94,10 @@ for i, input_diff in enumerate(diffionaries):
 all_positions = sorted(all_positions)
 print(f"Processed {len(all_positions)} sites.")
 
-incongruent_positions = []
-snp_incongrence_positions = []     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
-masked_incongruence_positions = [] # eg, one sample is G SNP and another is masked, or one is ref and another is masked
-masked_total_positions = []        # masked_incongruence + positions where ALL samples get masked
+incongruent_positions = set()
+snp_incongrence_positions = set()     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
+masked_incongruence_positions = set() # eg, one sample is G SNP and another is masked, or one is ref and another is masked
+masked_total_positions = set()        # masked_incongruence + positions where ALL samples get masked
 for position in tqdm(all_positions, disable=args.verbose):
 	each_sample = []
 	for input_diff in diffionaries:
@@ -111,18 +111,18 @@ for position in tqdm(all_positions, disable=args.verbose):
 	# print in place -- likely more efficient then going back later
 	if "-" in samples_at_this_position:
 		# This position is masked in AT LEAST ONE sample
-		if position not in incongruent_positions: incongruent_positions.append(position)
-		if position not in masked_total_positions: masked_total_positions.append(position)
+		incongruent_positions.add(position)
+		masked_total_positions.add(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-			# This position is masked in ALL sample
-			if position not in masked_incongruence_positions: masked_incongruence_positions.append(position)
+			# This position is masked in ALL samples
+			masked_incongruence_positions.add(position)
 			if args.verbose: write_line(f"{C_HIGHLIGHT_GRAY}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
 			# This position is masked in 1≤x≤n-1 samples
 			if args.verbose: write_line(f"{position}\t{''.join(sample for sample in each_sample)}")
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
-		if position not in incongruent_positions: incongruent_positions.append(position)
-		if position not in snp_incongrence_positions: snp_incongrence_positions.append(position)
+		incongruent_positions.add(position)
+		snp_incongrence_positions.add(position)
 		if "R" not in samples_at_this_position:
 			if args.verbose: write_line(f"{C_HIGHLIGHT_CYAN}{position}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
@@ -156,7 +156,7 @@ if args.backmask:
 		print(f"Backmasking {input_diff_object.sample}...")
 		backmasked_positions = []
 		retained_positions = []
-		output_data = {}
+		output_data = {} # dict, not set
 		for position in masked_incongruence_positions:
 			if position not in input_diff_object.data.keys():
 				if args.veryverbose: print(f"Masking reference call at position {position}")
