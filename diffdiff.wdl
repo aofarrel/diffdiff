@@ -3,14 +3,13 @@ version 1.0
 task diffdiff {
     input {
         Array[File] diffs
-        Boolean backmask = true
     }
     command <<<
     wget https://raw.githubusercontent.com/aofarrel/diffdiff/main/diffdiff.py
     
-    # find every file in diffs and write their address to a text file, then pass that into diffdiff.py
+    echo "~{sep='\n' diffs}" >> diff_paths.txt
     
-    python diffdiff.py diff_paths.txt ~{backmask} alignment.txt # TODO: does python need capital T True here
+    python3 diffdiff.py diff_paths.txt -mo usher_mask.tsv
     
     >>>
     runtime {
@@ -21,7 +20,19 @@ task diffdiff {
 		preemptible: 2
 	}
     output {
-        File alignment = "alignment.txt"
-        Array[File] backmasked_diffs = glob("*.backmask.diff")
+        File usher_mask = "usher_mask.tsv"
+        #Array[File] backmasked_diffs = glob("*.backmask.diff")
     }
+}
+
+workflow DiffDiff {
+    input {
+        Array[File] diffs    
+    }
+    
+    call diffdiff {
+        input:
+            diffs = diffs
+    }
+
 }
