@@ -228,7 +228,7 @@ if args.backmask:
 			for position in new_diff.data.keys():
 				backmasked_diff.write(f"{new_diff.data[position]}\t{position}\t1\n")
 		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions: ")
-		print(*backmasked_positions, end="\n\n")
+		#print(*backmasked_positions, end="\n\n")
 
 	print("New realignment of backmasked diffs:")
 	for position in all_positions:
