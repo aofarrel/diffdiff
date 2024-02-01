@@ -28,14 +28,21 @@ task diffdiff_usher_mask {
     }
 }
 
-task diffdiff_backmask {
+task diffdiff_backmask { # must be run with --copy-input-files on miniwdl
     input {
         Array[File] diffs
     }
     command <<<
+    set -eux pipefail
     wget https://raw.githubusercontent.com/aofarrel/diffdiff/main/diffdiff.py
     
-    echo "~{sep='\n' diffs}" >> diff_paths.txt
+    DIFFS=( ~{sep=' ' diffs} )
+    for FILE in "${DIFFS[@]}"
+    do
+       mv "$FILE" .
+    done
+    
+    find . -name "*.diff" >> diff_paths.txt
     
     python3 diffdiff.py diff_paths.txt -b
     
