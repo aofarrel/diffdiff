@@ -167,7 +167,6 @@ print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches (ref-SNP
 print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
 print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
 
-print("\nNoteworthy alignments:")
 noteworthy_ordered = sorted(noteworthy)
 masked_snps = 0
 incong_snps = 0
@@ -181,7 +180,11 @@ for position in noteworthy_ordered:
 		icg_ref_snp += 1
 	else:
 		print("WARNING: Unrecognized noteworthy alignment!")
-	print(f"{noteworthy.get(position)[0]}\t{noteworthy.get(position)[1]}")
+	if len(diff_files) < 10:
+		print("\nNoteworthy alignments:")
+		print(f"{noteworthy.get(position)[0]}\t{noteworthy.get(position)[1]}")
+	else:
+		print("Not printing noteworthy alignments, since there's more than 10 diff files involved.")
 
 print("\nNoteworthy positions summary:")
 print(f"\t{masked_snps} positions of newly-masked SNPs")
