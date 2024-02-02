@@ -180,11 +180,13 @@ for position in noteworthy_ordered:
 		icg_ref_snp += 1
 	else:
 		print("WARNING: Unrecognized noteworthy alignment!")
-	if len(diff_files) < 10:
-		print("\nNoteworthy alignments:")
+
+if len(diff_files) < 10:
+	print("\nNoteworthy alignments:")
+	for position in noteworthy_ordered:
 		print(f"{noteworthy.get(position)[0]}\t{noteworthy.get(position)[1]}")
-	else:
-		print("Not printing noteworthy alignments, since there's more than 10 diff files involved.")
+else:
+	print("Not printing noteworthy alignments, since there's more than 10 diff files involved.")
 
 print("\nNoteworthy positions summary:")
 print(f"\t{masked_snps} positions of newly-masked SNPs")
@@ -230,7 +232,7 @@ if args.backmask:
 			backmasked_diff.write(f">{new_diff.sample}\n")
 			for position in new_diff.data.keys():
 				backmasked_diff.write(f"{new_diff.data[position]}\t{position}\t1\n")
-		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions: ")
+		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions.")
 		#print(*backmasked_positions, end="\n\n")
 
 	print("New realignment of backmasked diffs:")
