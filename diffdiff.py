@@ -235,14 +235,15 @@ if args.backmask:
 		print(f"For {new_diff.sample}, backmasked {len(backmasked_positions)} positions.")
 		#print(*backmasked_positions, end="\n\n")
 
-	print("New realignment of backmasked diffs:")
-	for position in all_positions:
-		each_sample = []
-		for backmasked_diff in backmasked_diffs:
-			if position not in backmasked_diff.data.keys():
-				# this sample is missing information because it is ref
-				each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
-			else:
-				each_sample.append(backmasked_diff.data[position])
-		samples_at_this_position = ''.join(sample for sample in each_sample)
-		print(f"{position}\t{samples_at_this_position}")
+	if args.verbose:
+		print("New realignment of backmasked diffs:")
+		for position in all_positions:
+			each_sample = []
+			for backmasked_diff in backmasked_diffs:
+				if position not in backmasked_diff.data.keys():
+					# this sample is missing information because it is ref
+					each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
+				else:
+					each_sample.append(backmasked_diff.data[position])
+			samples_at_this_position = ''.join(sample for sample in each_sample)
+			print(f"{position}\t{samples_at_this_position}")
