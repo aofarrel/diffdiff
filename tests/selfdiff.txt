@@ -1,2 +1,0 @@
-../../Documents/YARGH/cov_2x/18RF5844-MI-TBWGS-NextSeq-2018-48_fastp.fq.diff
-../../Documents/YARGH/cov_2x/18RF5844-MI-TBWGS-NextSeq-2018-48_fastp.fq.diff.backmask.diff

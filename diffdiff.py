@@ -25,8 +25,12 @@ parser.add_argument("-c", "--colors", action="store_true",
 	f"and place where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}.")
 parser.add_argument("-v", "--verbose", action="store_true",
 	help="Print an alignment to stdout, in addition to -ao if defined")
-parser.add_argument("-vv", "--veryverbose", action="store_true",
+parser.add_argument("-bv", "--backmask_verbose", action="store_true",
 	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
+parser.add_argument("-vv", "--veryverbose", action="store_true",
+	help="Print an alignment to stdout, in addition to -ao if defined, even if masked/reference")
+parser.add_argument("-pd", "--print_diffionaries", action="store_true",
+	help="Print all diff files as they are interpreted as dictionaries (does not interact with -v nor -vv)")
 args = parser.parse_args()
 
 C_BLACK = BLACK if args.colors else ''
@@ -86,7 +90,7 @@ for diff_file in diff_files:
 	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
-if args.veryverbose: [diff.print_all() for diff in diffionaries]
+if args.print_diffionaries: [diff.print_all() for diff in diffionaries]
 
 all_positions = set()
 for i, input_diff in enumerate(diffionaries):
@@ -129,10 +133,10 @@ for position in tqdm(all_positions, disable=args.verbose):
 				if args.verbose: write_line(f"{position_and_samples}")
 			else:
 				# Masking this position will just mask one or more ref calls
-				if args.verbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
+				if args.veryverbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
 			# This position is masked in ALL samples (no incongruence)
-			if args.verbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
+			if args.veryverbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
 	
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		incongruent_positions.add(position)
@@ -208,15 +212,15 @@ if args.backmask:
 		output_data = {} # dict, not set
 		for position in masked_incongruence_positions:
 			if position not in input_diff_object.data.keys():
-				if args.veryverbose: print(f"Masking reference call at position {position}")
+				if args.backmask_verbose: print(f"Masking reference call at position {position}")
 				output_data[position] = "-"
 				backmasked_positions.append(position)
 			elif input_diff_object.data[position] != "-":
-				if args.veryverbose: print(f"Masking {input_diff_object.data[position]} SNP at position {position}")
+				if args.backmask_verbose: print(f"Masking {input_diff_object.data[position]} SNP at position {position}")
 				output_data[position] = "-"
 				backmasked_positions.append(position)
 			else:
-				if args.veryverbose: print(f"Leaving {input_diff_object.data[position]} in place at position {position}")
+				if args.backmask_verbose: print(f"Leaving {input_diff_object.data[position]} in place at position {position}")
 				output_data[position] = input_diff_object.data[position]
 				retained_positions.append(position)
 		for position in input_diff_object.data.keys():
