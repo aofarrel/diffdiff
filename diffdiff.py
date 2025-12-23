@@ -27,6 +27,8 @@ parser.add_argument("-v", "--verbose", action="store_true",
 	help="Print an alignment to stdout, in addition to -ao if defined")
 parser.add_argument("-vv", "--veryverbose", action="store_true",
 	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
+parser.add_argument("-mmts", "--matutils_mask_these_samples", action="store_true",
+	help="Make a second column in -mo's TSV listing only samples processed by this run")
 args = parser.parse_args()
 
 C_BLACK = BLACK if args.colors else ''
@@ -195,8 +197,12 @@ print(f"\t{icg_ref_snp} positions of SNP-ref incongruence")
 
 if args.mask_outfile:
 	with open(args.mask_outfile, "a") as f:
-		for position in masked_incongruence_positions:
-			f.write(f"N{position}N\n")
+		if args.mmts:
+			for position in masked_incongruence_positions:
+				f.write(f"N{position}N\t{diff.sample for diff in diffionaries}\n")
+		else:
+			for position in masked_incongruence_positions:
+				f.write(f"N{position}N\n")
 	print(f"\nWrote information about incongruence in masking to {args.mask_outfile}")
 
 if args.backmask:
