@@ -1,7 +1,10 @@
 # pylint: disable=W0311,W1514,C0103,C0321,C0301
 
 import argparse
-from tqdm import tqdm
+try:
+	from tqdm import tqdm
+except ImportError:
+	print("Failed to import tqdm")
 
 BLACK = '\033[30m'
 RED = '\033[91m'
@@ -37,6 +40,9 @@ parser.add_argument("-pd", "--print_diffionaries", action="store_true",
 	help="Print all diff files as they are interpreted as dictionaries (does not interact with -v nor -vv)")
 args = parser.parse_args()
 
+if args.veryverbose:
+	args.verbose = True
+
 C_BLACK = BLACK if args.colors else ''
 C_RED = RED if args.colors else ''
 C_END = END if args.colors else ''
@@ -45,16 +51,8 @@ C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
 C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
 C_FADE = FADE if args.colors else ''
 
-def write_line(some_line):
-	"""Write one line to either the alignment outfile or stdout as necessary"""
-	if args.alignment_outfile:  # ie, if not None
-		with open(args.alignment_outfile, "a") as f:
-			f.write(some_line+"\n")
-	else:
-		print(some_line)
-
 def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
-	if both or outfile is None:
+	if both:
 		for line in lines:
 			print(line)
 	if outfile is not None:
@@ -137,6 +135,9 @@ incongruence = {'incongruent_positions': set(),
 # stores position + samples at that position as string for just noteworth mismatches
 noteworthy = dict()
 
+# alignment, which excludes ref-mask and full-mask positions unless args.veryverbose
+alignment = list()
+
 for position in tqdm(all_positions, disable=args.verbose):
 	each_sample = []
 	for input_diff in diffionaries:
@@ -152,19 +153,19 @@ for position in tqdm(all_positions, disable=args.verbose):
 		incongruence['incongruent_positions'].add(position)
 		incongruence['masked_total_positions'].add(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
-			# This position is masked in 1≤x≤n-1 samples
+			# This position is masked in at least one sample
 			incongruence['masked_incongruence_positions'].add(position)
 			if any(SNP in samples_at_this_position for SNP in ('A', 'T', 'G', 'C')):
 				# Masking this position will mask a SNP
 				position_and_samples = f"{C_HIGHLIGHT_GRAY}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}"
 				noteworthy.update({str(position).zfill(7): [position_and_samples, "masked SNP"]})
-				if args.verbose: write_line(f"{position_and_samples}")
+				alignment.append(position_and_samples)
 			else:
 				# Masking this position will just mask one or more ref calls
-				if args.veryverbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
+				if args.veryverbose: alignment.append(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
 		else:
 			# This position is masked in ALL samples (no incongruence)
-			if args.veryverbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
+			if args.veryverbose: alignment.append(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
 	
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		incongruence['incongruent_positions'].add(position)
@@ -177,15 +178,16 @@ for position in tqdm(all_positions, disable=args.verbose):
 			# At least one sample calls SNP and another calls reference, and no samples are masked
 			position_and_samples = f"{C_HIGHLIGHT_GREEN}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}"
 			noteworthy.update({str(position).zfill(7): [position_and_samples, "SNP-ref incongruence"]})
-		if args.verbose: write_line(f"{position_and_samples}")
+		alignment.append(f"{position_and_samples}")
 		
 	
 	else:
 		# All samples either ref or the same SNP
-		if args.verbose: write_line(f"{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}")
+		alignment.append(f"{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}")
 
 assert len(incongruence['masked_total_positions']) + len(incongruence['snp_incongrence_positions']) == len(incongruence['incongruent_positions'])
 
+printwrite_lines(alignment, args.alignment_outfile, both=args.verbose)
 printwrite_summary(diffionaries, all_positions, incongruence)
 
 noteworthy_ordered = sorted(noteworthy)
