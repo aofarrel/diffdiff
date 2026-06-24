@@ -17,9 +17,13 @@ parser.add_argument("input_file_with_diff_paths",
 parser.add_argument("-b", "--backmask", action="store_true",
 	help="Create new diff files masked at positions where at least one sample is masked")
 parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
-	help="Alignment outfile")
+	help="Outfile of alignment")
 parser.add_argument("-mo", "--mask_outfile", default=None, required=False,
 	help="Outfile TSV of positions where at least one sample is masked -- designed for matUtils mask")
+parser.add_argument("-no", "--noteworthy_outfile", default=None, required=False,
+	help="Outfile of noteworthy alignments (SNP-SNP mismatch, SNP-ref mismatch, SNP-mask mismatch)")
+parser.add_argument("-so", "--summary_outfile", default=None, required=False,
+	help="Outfile of summary information")
 parser.add_argument("-c", "--colors", action="store_true",
 	help=f"Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN}cyan{END}, SNP-ref mismatches in {HIGHLIGHT_GREEN}green{END}, "
 	f"and places where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}. Works best on light-background terminals.")
@@ -48,6 +52,30 @@ def write_line(some_line):
 			f.write(some_line+"\n")
 	else:
 		print(some_line)
+
+def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
+	if both or outfile is None:
+		for line in lines:
+			print(line)
+	if outfile is not None:
+		with open(outfile, "w") as f:
+			f.writelines(f"{line}\n" for line in lines)
+
+def printwrite_summary(diffionaries, all_positions, incongruence):
+	lines_to_print=[]
+	lines_to_print.append('')
+	for input_diff in diffionaries:
+		lines_to_print.append(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
+	lines_to_print.append(f"\nComparing across all diffs:\n{len(incongruence['incongruent_positions'])} out of {len(all_positions)} positions have at least one mismatch or mask.")
+	lines_to_print.append(f"\t{len(incongruence['snp_incongrence_positions'])} positions are SNP mismatches (ref-SNP or SNP-SNP)")
+	lines_to_print.append(f"\t{len(incongruence['masked_incongruence_positions'])} positions have a mask-nomask mismatch")
+	lines_to_print.append(f"\t{len(incongruence['masked_total_positions']) - len(incongruence['masked_incongruence_positions'])} positions are masked across all samples")
+	#lines_to_print.append("\nNoteworthy positions summary:")
+	#lines_to_print.append(f"\t{masked_snps} positions of newly-masked SNPs")
+	#lines_to_print.append(f"\t{incong_snps} positions of incongruent SNPs")
+	#lines_to_print.append(f"\t{icg_ref_snp} positions of SNP-ref incongruence")
+	printwrite_lines(lines_to_print, args.summary_outfile, both=True)
+
 
 class Diff:
 	"""Represents a diff file"""
@@ -100,13 +128,13 @@ for i, input_diff in enumerate(diffionaries):
 all_positions = sorted(all_positions)
 print(f"Processed {len(all_positions)} sites.")
 
-# stores just position integers
-incongruent_positions = set()
-snp_incongrence_positions = set()     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
-masked_incongruence_positions = set() # eg, one sample is G SNP and another is masked, or one is ref and another is masked
-masked_total_positions = set()        # masked_incongruence + positions where ALL samples get masked
+# stores just position integers for all types of mismatch
+incongruence = {'incongruent_positions': set(), 
+				'snp_incongrence_positions': set(),     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
+				'masked_incongruence_positions': set(), # eg, one sample is G SNP and another is masked, or one is ref and another is masked
+				'masked_total_positions': set()}        # masked_incongruence + positions where ALL samples get masked
 
-# stores position + samples at that position as string (for reprinting noteworthy sites)
+# stores position + samples at that position as string for just noteworth mismatches
 noteworthy = dict()
 
 for position in tqdm(all_positions, disable=args.verbose):
@@ -121,11 +149,11 @@ for position in tqdm(all_positions, disable=args.verbose):
 
 	if "-" in samples_at_this_position:
 		# This position is masked in AT LEAST ONE sample
-		incongruent_positions.add(position)
-		masked_total_positions.add(position)
+		incongruence['incongruent_positions'].add(position)
+		incongruence['masked_total_positions'].add(position)
 		if ''.join(sample for sample in each_sample) != ''.join("-" for sample in each_sample):
 			# This position is masked in 1≤x≤n-1 samples
-			masked_incongruence_positions.add(position)
+			incongruence['masked_incongruence_positions'].add(position)
 			if any(SNP in samples_at_this_position for SNP in ('A', 'T', 'G', 'C')):
 				# Masking this position will mask a SNP
 				position_and_samples = f"{C_HIGHLIGHT_GRAY}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}"
@@ -139,8 +167,8 @@ for position in tqdm(all_positions, disable=args.verbose):
 			if args.veryverbose: write_line(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
 	
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
-		incongruent_positions.add(position)
-		snp_incongrence_positions.add(position)
+		incongruence['incongruent_positions'].add(position)
+		incongruence['snp_incongrence_positions'].add(position)
 		if "R" not in samples_at_this_position:
 			# Incongruent SNPs, with no samples being reference (ex: TTTA) -- this is rare!
 			position_and_samples = f"{C_HIGHLIGHT_CYAN}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}"
@@ -156,20 +184,9 @@ for position in tqdm(all_positions, disable=args.verbose):
 		# All samples either ref or the same SNP
 		if args.verbose: write_line(f"{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}")
 
-print()
-for input_diff in diffionaries:
-	print(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
+assert len(incongruence['masked_total_positions']) + len(incongruence['snp_incongrence_positions']) == len(incongruence['incongruent_positions'])
 
-assert len(incongruent_positions) == len(set(incongruent_positions))
-assert len(snp_incongrence_positions) == len(set(snp_incongrence_positions))
-assert len(masked_incongruence_positions) == len(set(masked_incongruence_positions))
-assert len(masked_total_positions) == len(set(masked_total_positions))
-assert len(masked_total_positions) + len(snp_incongrence_positions) == len(incongruent_positions)
-
-print(f"\nComparing across all diffs:\n{len(incongruent_positions)} out of {len(all_positions)} positions have at least one mismatch or mask.")
-print(f"\t{len(snp_incongrence_positions)} positions are SNP mismatches (ref-SNP or SNP-SNP)")
-print(f"\t{len(masked_incongruence_positions)} positions have a mask-nomask mismatch")
-print(f"\t{len(masked_total_positions) - len(masked_incongruence_positions)} positions are masked across all samples")
+printwrite_summary(diffionaries, all_positions, incongruence)
 
 noteworthy_ordered = sorted(noteworthy)
 masked_snps = 0
@@ -183,7 +200,7 @@ for position in noteworthy_ordered:
 	elif noteworthy.get(position)[1] == "SNP-ref incongruence":
 		icg_ref_snp += 1
 	else:
-		print("WARNING: Unrecognized noteworthy alignment!")
+		raise ValueError(f"Unrecognized noteworthy alignment at {position}: {noteworthy.get(position)[1]}")
 
 if len(diff_files) < 10:
 	print("\nNoteworthy alignments:")
@@ -192,14 +209,10 @@ if len(diff_files) < 10:
 else:
 	print("Not printing noteworthy alignments, since there's more than 10 diff files involved.")
 
-print("\nNoteworthy positions summary:")
-print(f"\t{masked_snps} positions of newly-masked SNPs")
-print(f"\t{incong_snps} positions of incongruent SNPs")
-print(f"\t{icg_ref_snp} positions of SNP-ref incongruence")
 
 if args.mask_outfile:
 	with open(args.mask_outfile, "a") as f:
-		for position in masked_incongruence_positions:
+		for position in incongruence['masked_incongruence_positions']:
 			f.write(f"N{position}N\n")
 	print(f"\nWrote information about incongruence in masking to {args.mask_outfile}")
 
@@ -210,7 +223,7 @@ if args.backmask:
 		backmasked_positions = []
 		retained_positions = []
 		output_data = {} # dict, not set
-		for position in masked_incongruence_positions:
+		for position in incongruence['masked_incongruence_positions']:
 			if position not in input_diff_object.data.keys():
 				if args.backmask_verbose: print(f"Masking reference call at position {position}")
 				output_data[position] = "-"
