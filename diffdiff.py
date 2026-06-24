@@ -15,14 +15,14 @@ parser = argparse.ArgumentParser(description="diffdiff - diff your diff files")
 parser.add_argument("input_file_with_diff_paths",
 	help="Input file listing paths of diff files to compare, one path per line")
 parser.add_argument("-b", "--backmask", action="store_true",
-	help="Create new diff files masked at at locations where at least one sample is masked (see docs)")
+	help="Create new diff files masked at positions where at least one sample is masked")
 parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
-	help="Filename of alignment")
+	help="Alignment outfile")
 parser.add_argument("-mo", "--mask_outfile", default=None, required=False,
-	help="Filename of TSV of positions where at least one sample is masked -- designed for matUtils mask")
+	help="Outfile TSV of positions where at least one sample is masked -- designed for matUtils mask")
 parser.add_argument("-c", "--colors", action="store_true",
 	help=f"Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN}cyan{END}, SNP-ref mismatches in {HIGHLIGHT_GREEN}green{END}, "
-	f"and place where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}.")
+	f"and places where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}. Works best on light-background terminals.")
 parser.add_argument("-v", "--verbose", action="store_true",
 	help="Print an alignment to stdout, in addition to -ao if defined")
 parser.add_argument("-bv", "--backmask_verbose", action="store_true",

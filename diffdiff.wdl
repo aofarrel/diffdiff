@@ -24,7 +24,6 @@ task diffdiff_usher_mask {
 	}
     output {
         File usher_mask = "usher_mask.tsv"
-        #Array[File] backmasked_diffs = glob("*.backmask.diff")
     }
 }
 
