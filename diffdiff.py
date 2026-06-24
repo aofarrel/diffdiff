@@ -6,13 +6,20 @@ try:
 except ImportError:
 	print("Failed to import tqdm")
 
-BLACK = '\033[30m'
-RED = '\033[91m'
+
+BLACK_LIGHT_BG = '\033[82m'
+HIGHLIGHT_CYAN_LIGHT_BG = '\u001b[48;5;87m'
+HIGHLIGHT_GREEN_LIGHT_BG = '\u001b[48;5;47m'
+HIGHLIGHT_GRAY_LIGHT_BG = '\u001b[48;5;250m'
+
+BLACK_DARK_BG = '\033[97m'
+HIGHLIGHT_CYAN_DARK_BG = '\u001b[48;5;75m'
+HIGHLIGHT_GREEN_DARK_BG = '\u001b[48;5;70m'
+HIGHLIGHT_GRAY_DARK_BG = '\u001b[48;5;239m'
+
 END = '\033[0m'
-HIGHLIGHT_CYAN = '\u001b[48;5;87m'
-HIGHLIGHT_GREEN = '\u001b[48;5;47m'
-HIGHLIGHT_GRAY = '\u001b[48;5;250m'
 FADE = '\u001b[48;2;250m'
+RED = '\033[91m'            # TODO: this might be terrible for RG colorblindness
 
 parser = argparse.ArgumentParser(description="diffdiff - diff your diff files")
 parser.add_argument("input_file_with_diff_paths",
@@ -28,8 +35,14 @@ parser.add_argument("-no", "--noteworthy_outfile", default=None, required=False,
 parser.add_argument("-so", "--summary_outfile", default=None, required=False,
 	help="Outfile of summary information")
 parser.add_argument("-c", "--colors", action="store_true",
-	help=f"Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN}cyan{END}, SNP-ref mismatches in {HIGHLIGHT_GREEN}green{END}, "
-	f"and places where at least one sample is masked in {HIGHLIGHT_GRAY}gray{END}. Works best on light-background terminals.")
+	help=f"[for black-background terminals try also using -l] Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN_LIGHT_BG}cyan{END}, "
+	f"SNP-ref mismatches in {HIGHLIGHT_GREEN_LIGHT_BG}green{END}, "
+	f"and places where at least one sample is masked in {HIGHLIGHT_GRAY_LIGHT_BG}gray{END}")
+parser.add_argument("-l", "--light", action="store_true",
+	help=f"[not needed if not -c] Adjusts -c to work better on black-background terminals." 
+	f"SNP-SNP mismatches: {HIGHLIGHT_CYAN_DARK_BG}TGGG{END} "
+	f"SNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{BLACK_DARK_BG}T{END} "
+	f"masked: {HIGHLIGHT_GRAY_DARK_BG}T---{END}")
 parser.add_argument("-v", "--verbose", action="store_true",
 	help="Print an alignment to stdout, in addition to -ao if defined")
 parser.add_argument("-bv", "--backmask_verbose", action="store_true",
@@ -42,6 +55,14 @@ args = parser.parse_args()
 
 if args.veryverbose:
 	args.verbose = True
+
+if args.light and not args.colors:
+	print("Warning: You used -l without -c. -; is only necessary if -c AND a black-background terminal. To enable highlights use -c too.")
+
+BLACK = BLACK_DARK_BG if (args.light and args.colors) else BLACK_LIGHT_BG
+HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_CYAN_LIGHT_BG
+HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GREEN_LIGHT_BG
+HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GRAY_LIGHT_BG
 
 C_BLACK = BLACK if args.colors else ''
 C_RED = RED if args.colors else ''
@@ -93,6 +114,9 @@ diffionaries = []
 
 with open(args.input_file_with_diff_paths) as pile_of_diffs:
 	diff_files = [line.strip("\n") for line in pile_of_diffs.readlines()]
+	for line in diff_files:
+		print(line)
+	exit(999)
 
 for diff_file in diff_files:
 	with open(diff_file, "r") as input_diff:

@@ -1,9 +1,9 @@
 ## what's in the simple dataset?
 
-TODO: 
+Up for debate:
 * Should 133, 175, and 195 be highlighted as SNP-SNP incongruence instead of SNP-ref incongruence?
-* Should 150 be highlighted as SNP-SNP incongruence instead SNP-mask incongruence?
-* Should 151 be highlighted as SNP-ref incongruence instead SNP-mask incongruence?
+* Should 150 be highlighted as SNP-SNP incongruence instead SNP-mask incongruence? --> No, because mask silences all SNPs
+* Should 151 be highlighted as SNP-ref incongruence instead SNP-mask incongruence? --> No, because mask silences all SNPs
 
 
 |     | x | y | z | justification                    |
