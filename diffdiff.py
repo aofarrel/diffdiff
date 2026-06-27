@@ -13,9 +13,9 @@ HIGHLIGHT_GREEN_LIGHT_BG = '\u001b[48;5;47m'
 HIGHLIGHT_GRAY_LIGHT_BG = '\u001b[48;5;250m'
 
 BLACK_DARK_BG = '\033[97m'
-HIGHLIGHT_CYAN_DARK_BG = '\u001b[48;5;75m'
-HIGHLIGHT_GREEN_DARK_BG = '\u001b[48;5;70m'
-HIGHLIGHT_GRAY_DARK_BG = '\u001b[48;5;239m'
+HIGHLIGHT_CYAN_DARK_BG = '\033[46m'  # also try \u001b[48;5;75m
+HIGHLIGHT_GREEN_DARK_BG = '\033[42m' # also try \u001b[48;5;70m
+HIGHLIGHT_GRAY_DARK_BG = '\033[100m' # also try \u001b[48;5;239m
 
 END = '\033[0m'
 FADE = '\u001b[48;2;250m'
@@ -116,7 +116,6 @@ with open(args.input_file_with_diff_paths) as pile_of_diffs:
 	diff_files = [line.strip("\n") for line in pile_of_diffs.readlines()]
 	for line in diff_files:
 		print(line)
-	exit(999)
 
 for diff_file in diff_files:
 	with open(diff_file, "r") as input_diff:

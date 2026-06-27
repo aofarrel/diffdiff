@@ -1,4 +1,4 @@
-## what's in the simple dataset?
+## what's in this test dataset?
 
 Up for debate:
 * Should 133, 175, and 195 be highlighted as SNP-SNP incongruence instead of SNP-ref incongruence?
