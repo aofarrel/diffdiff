@@ -7,59 +7,88 @@ except ImportError:
 	print("Failed to import tqdm")
 
 
-BLACK_LIGHT_BG = '\033[82m'
+#BLACK_LIGHT_BG = '\033[30m'
 HIGHLIGHT_CYAN_LIGHT_BG = '\u001b[48;5;87m'
 HIGHLIGHT_GREEN_LIGHT_BG = '\u001b[48;5;47m'
 HIGHLIGHT_GRAY_LIGHT_BG = '\u001b[48;5;250m'
 
-BLACK_DARK_BG = '\033[97m'
+#BLACK_DARK_BG = '\033[97m'
 HIGHLIGHT_CYAN_DARK_BG = '\033[46m'  # also try \u001b[48;5;75m
 HIGHLIGHT_GREEN_DARK_BG = '\033[42m' # also try \u001b[48;5;70m
 HIGHLIGHT_GRAY_DARK_BG = '\033[100m' # also try \u001b[48;5;239m
 
+DEFAULT = "\033[39m"
 END = '\033[0m'
 FADE = '\u001b[48;2;250m'
 RED = '\033[91m'            # TODO: this might be terrible for RG colorblindness
 
-parser = argparse.ArgumentParser(description="diffdiff - diff your diff files")
+parser = argparse.ArgumentParser(description="diffdiff - diff your diff files", formatter_class=argparse.RawTextHelpFormatter)
+
 parser.add_argument("input_file_with_diff_paths",
 	help="Input file listing paths of diff files to compare, one path per line")
-parser.add_argument("-b", "--backmask", action="store_true",
-	help="Create new diff files masked at positions where at least one sample is masked")
-parser.add_argument("-ao", "--alignment_outfile", default=None, required=False,
-	help="Outfile of alignment")
-parser.add_argument("-mo", "--mask_outfile", default=None, required=False,
-	help="Outfile TSV of positions where at least one sample is masked -- designed for matUtils mask")
-parser.add_argument("-no", "--noteworthy_outfile", default=None, required=False,
+
+outfile_group = parser.add_argument_group(
+    title="Output File Options",
+    description="Enable various optional outfiles")
+outfile_group.add_argument("-ao", "--alignment_outfile", default=None, required=False,
+	help="Outfile of full alignment of all positions")
+outfile_group.add_argument("-no", "--noteworthy_outfile", default=None, required=False,
 	help="Outfile of noteworthy alignments (SNP-SNP mismatch, SNP-ref mismatch, SNP-mask mismatch)")
-parser.add_argument("-so", "--summary_outfile", default=None, required=False,
+outfile_group.add_argument("-mo", "--mask_outfile", default=None, required=False,
+	help="Outfile TSV of positions where at least one sample is masked, designed for matUtils mask")
+outfile_group.add_argument("-so", "--summary_outfile", default=None, required=False,
 	help="Outfile of summary information")
-parser.add_argument("-c", "--colors", action="store_true",
-	help=f"[for black-background terminals try also using -l] Highlight SNP-SNP mismatches in {HIGHLIGHT_CYAN_LIGHT_BG}cyan{END}, "
-	f"SNP-ref mismatches in {HIGHLIGHT_GREEN_LIGHT_BG}green{END}, "
-	f"and places where at least one sample is masked in {HIGHLIGHT_GRAY_LIGHT_BG}gray{END}")
-parser.add_argument("-l", "--light", action="store_true",
-	help=f"[not needed if not -c] Adjusts -c to work better on black-background terminals." 
-	f"SNP-SNP mismatches: {HIGHLIGHT_CYAN_DARK_BG}TGGG{END} "
-	f"SNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{BLACK_DARK_BG}T{END} "
-	f"masked: {HIGHLIGHT_GRAY_DARK_BG}T---{END}")
-parser.add_argument("-v", "--verbose", action="store_true",
-	help="Print an alignment to stdout, in addition to -ao if defined")
-parser.add_argument("-bv", "--backmask_verbose", action="store_true",
-	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not backmasking)")
-parser.add_argument("-vv", "--veryverbose", action="store_true",
-	help="Print an alignment to stdout, in addition to -ao if defined, even if masked/reference")
-parser.add_argument("-pd", "--print_diffionaries", action="store_true",
-	help="Print all diff files as they are interpreted as dictionaries (does not interact with -v nor -vv)")
+
+color_group = parser.add_argument_group(
+    title="Display & Color Options",
+    description="Settings to tweak how alignments show in stdout (also affects outfiles!)")
+color_group.add_argument("-c", "--colors", action="store_true",
+	help=f"[for black-background terminals try also using -l] Alignments will be marked with ANSI color codes. Specifically:"
+	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_LIGHT_BG}TGGG{END}"
+	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_LIGHT_BG}T{RED}RR{DEFAULT}T{END}"
+	f"\nmasked SNP: {HIGHLIGHT_GRAY_LIGHT_BG}T---{END}"
+	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
+color_group.add_argument("-l", "--light", action="store_true",
+	help=f"[not needed if not -c] Adjusts -c to work better on black-background terminals. " 
+	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_DARK_BG}TGGG{END}"
+	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{DEFAULT}T{END}"
+	f"\nmasked SNP: {HIGHLIGHT_GRAY_DARK_BG}T---{END}"
+	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
+
+verbosity_group = parser.add_argument_group(
+    title="Verbosity",
+    description="Just how much text do you want to dump to stdout?")
+verbosity_group.add_argument("-v", "--verbose", action="store_true",
+	help="Force printing of an alignment of noteworthy positions (-no) to stdout, even if >100 diffs or >200 noteworthy positions")
+verbosity_group.add_argument("-vv", "--veryverbose", action="store_true",
+	help="-v + print a full alignment (-ao) to stdout + print input diff names")
+verbosity_group.add_argument("-pd", "--print_diffionaries", action="store_true",
+	help="[not recommended] Print all diff files as they are interpreted as dictionaries (does not interact with -v nor -vv)")
+
+backmask_group = parser.add_argument_group(
+    title="Backmasking",
+    description="diffdiff includes rudimentary support for masking positions where at least one position is already masked. "
+    "\nWe call this backmasking (since you're ''going back'' and re-masking). For example, if four samples respectively "
+    "\ncall SNP, ref, mask, ref at position X, after they are backmasked, all four samples will now be mask at position X. "
+    "\n"
+    "\ndiffdiff's method of backmasking is rudimentary, deprecated, and generally not recommended, especially if you "
+    "\nare working with more than ten files, as it scales poorly. For a more performant form of backmasking, automatically "
+    "\napplied to samples within a given SNP distance, please see Tree Nine instead: github.com/aofarrel/tree_nine")
+backmask_group.add_argument("-b", "--backmask", action="store_true",
+	help="Create backmasked diff files in workdir with pattern [input_name].backmask.diff")
+backmask_group.add_argument("-bv", "--backmask_verbose", action="store_true",
+	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not -b)")
+
+
 args = parser.parse_args()
 
 if args.veryverbose:
 	args.verbose = True
 
 if args.light and not args.colors:
-	print("Warning: You used -l without -c. -; is only necessary if -c AND a black-background terminal. To enable highlights use -c too.")
+	print("WARNING: You used -l without -c but -l is only necessary if -c AND a black-background terminal. To enable highlights use -c too.")
 
-BLACK = BLACK_DARK_BG if (args.light and args.colors) else BLACK_LIGHT_BG
+BLACK = DEFAULT if (args.light and args.colors) else DEFAULT
 HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_CYAN_LIGHT_BG
 HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GREEN_LIGHT_BG
 HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GRAY_LIGHT_BG
@@ -79,6 +108,7 @@ def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
 	if outfile is not None:
 		with open(outfile, "w") as f:
 			f.writelines(f"{line}\n" for line in lines)
+		print(f"Wrote to {outfile}")
 
 def printwrite_summary(diffionaries, all_positions, incongruence):
 	lines_to_print=[]
@@ -114,8 +144,10 @@ diffionaries = []
 
 with open(args.input_file_with_diff_paths) as pile_of_diffs:
 	diff_files = [line.strip("\n") for line in pile_of_diffs.readlines()]
-	for line in diff_files:
-		print(line)
+	if args.veryverbose:
+		for line in diff_files:
+			print(line)
+	print(f"{len(diff_files)} diffs were input.")
 
 for diff_file in diff_files:
 	with open(diff_file, "r") as input_diff:
@@ -161,11 +193,16 @@ noteworthy = dict()
 # alignment, which excludes ref-mask and full-mask positions unless args.veryverbose
 alignment = list()
 
-for position in tqdm(all_positions, disable=args.verbose):
+if len(all_positions) > 1000 or args.veryverbose:
+	progressbar = True
+else:
+	progressbar = False
+
+for position in tqdm(all_positions, disable=(not progressbar)):
 	each_sample = []
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
-			# this sample is missing information because it is ref
+			# This sample is missing information because it is ref
 			each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
 		else:
 			each_sample.append(input_diff.data[position])
@@ -210,7 +247,9 @@ for position in tqdm(all_positions, disable=args.verbose):
 
 assert len(incongruence['masked_total_positions']) + len(incongruence['snp_incongrence_positions']) == len(incongruence['incongruent_positions'])
 
-printwrite_lines(alignment, args.alignment_outfile, both=args.verbose)
+printwrite_lines(alignment, args.alignment_outfile, both=args.veryverbose)
+if not args.verbose:
+	print("Not printing full alignment to stdout (override with -vv)")
 printwrite_summary(diffionaries, all_positions, incongruence)
 
 noteworthy_ordered = sorted(noteworthy)
@@ -227,12 +266,14 @@ for position in noteworthy_ordered:
 	else:
 		raise ValueError(f"Unrecognized noteworthy alignment at {position}: {noteworthy.get(position)[1]}")
 
-if len(diff_files) < 10:
-	print("\nNoteworthy alignments:")
-	for position in noteworthy_ordered:
-		print(f"{noteworthy.get(position)[0]}\t{noteworthy.get(position)[1]}")
-else:
-	print("Not printing noteworthy alignments, since there's more than 10 diff files involved.")
+total_noteworthy_positions = masked_snps + incong_snps + icg_ref_snp
+print_noteworthy_alignment = ([len(diff_files) < 100 and total_noteworthy_positions < 200] or args.verbose)
+noteworthy_alignment = list()
+for position in noteworthy_ordered:
+	noteworthy_alignment.append(f"{noteworthy.get(position)[0]}\t{noteworthy.get(position)[1]}")
+printwrite_lines(noteworthy_alignment, args.noteworthy_outfile, both=print_noteworthy_alignment)
+if not print_noteworthy_alignment:
+	print("Not printing noteworthy alignments to stdout since there's either more than 100 samples involved, or more than 200 noteworthy positions (override with -v or -vv)")
 
 
 if args.mask_outfile:
@@ -242,6 +283,8 @@ if args.mask_outfile:
 	print(f"\nWrote information about incongruence in masking to {args.mask_outfile}")
 
 if args.backmask:
+	if len(diff_files) < 10:
+		print("WARNING: You are backmasking more than 10 diff files. This might be painfully slow.")
 	backmasked_diffs = []
 	for input_diff_object in diffionaries:
 		print(f"Backmasking {input_diff_object.sample}...")

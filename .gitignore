@@ -4,3 +4,6 @@ diffdiff.json
 2024*/*
 _LAST
 .DS_Store
+printme
+printmetoo
+tests/real_data_paths.txt
