@@ -4,7 +4,8 @@ import argparse
 try:
 	from tqdm import tqdm
 except ImportError:
-	print("Failed to import tqdm")
+	print("Failed to import tqdm, please pip install it")
+	exit(1)
 
 
 #BLACK_LIGHT_BG = '\033[30m'
