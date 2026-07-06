@@ -29,6 +29,9 @@
 ## Examples
 Alignments and summary information can be written to files via `-ao` and `-so` respectively. Below are representations of stdout in my terminal. Try `-a` instead of `-c` (or use neither) if you prefer dark-colored terminals.
 
+### Provided test files, default
+<img src="./img/default.png" alt="colors" width="600"/>
+
 ### 188 diffs, `-c`:
 This is a good example of why this works best with highly clonal samples; one sample with a lot of masking will hide most ref-SNP differences.
 <br>
