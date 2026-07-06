@@ -17,7 +17,7 @@ HIGHLIGHT_GRAY_DARK_BG = '\033[100m' # also try \u001b[48;5;239m
 DEFAULT = "\033[39m"
 END = '\033[0m'
 FADE = '\u001b[48;2;250m'
-RED = '\033[91m'            # TODO: this might be terrible for RG colorblindness
+RED = '\033[91m'
 
 parser = argparse.ArgumentParser(description="diffdiff - diff your diff files"
 	"\n\nEssentially a multiple sequence alignment tool for MAPLE-formatted diff files, diffdiff compares an arbitrary "
@@ -55,6 +55,11 @@ color_group.add_argument("-a", "--altcolors", action="store_true",
 	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{DEFAULT}T{END}"
 	f"\nmasked SNP: {HIGHLIGHT_GRAY_DARK_BG}T---{END}"
 	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
+color_group.add_argument("-d", "--deuteranopia", action="store_true",
+	help=f"If -c or -a, leave reference calls in terminal default color instead of red, "
+	"in attempt to avoid SNP-ref mismatches (highlighted in green) being illegible with "
+	"common forms of colorblindness, or for those who simply prefer not to mark reference. "
+	"Null op if neither -c nor -a. Depending on terminal colors this may not be needed. ")
 
 verbosity_group = parser.add_argument_group(
     title="Verbosity",
@@ -87,16 +92,16 @@ if args.veryverbose:
 if args.colors and args.altcolors:
 	raise ValueError("Found both -c and -a. Please specify either -c for light terminal backgrounds and -a for dark terminal backgrounds.")
 
-HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_CYAN_LIGHT_BG
-HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_GREEN_LIGHT_BG
-HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_GRAY_LIGHT_BG
+HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if args.altcolors else HIGHLIGHT_CYAN_LIGHT_BG
+HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if args.altcolors else HIGHLIGHT_GREEN_LIGHT_BG
+HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if args.altcolors else HIGHLIGHT_GRAY_LIGHT_BG
 
 C_DEFAULT = DEFAULT if (args.colors or args.altcolors) else ''
-C_RED = RED if (args.colors or args.altcolors) else ''
+C_RED = RED if ((args.colors or args.altcolors) and not args.deuteranopia) else ''
 C_END = END if (args.colors or args.altcolors) else ''
-C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
-C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
-C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
+C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if (args.colors or args.altcolors) else ''
+C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if (args.colors or args.altcolors) else ''
+C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if (args.colors or args.altcolors) else ''
 C_FADE = FADE if (args.colors or args.altcolors) else ''
 
 def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
