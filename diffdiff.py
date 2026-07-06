@@ -155,7 +155,13 @@ with open(args.input_file_with_diff_paths) as pile_of_diffs:
 			print(line)
 	print(f"{len(diff_files)} diffs were input.")
 
-for diff_file in diff_files:
+if len(diff_files) > 100 or args.veryverbose:
+	progressbar = True
+else:
+	progressbar = False
+
+print("Converting to dictionaries...")
+for diff_file in tqdm(diff_files, disable=(not progressbar)):
 	with open(diff_file, "r") as input_diff:
 		sample_name = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
 		diff_data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
@@ -204,6 +210,7 @@ if len(all_positions) > 1000 or args.veryverbose:
 else:
 	progressbar = False
 
+print("Generating alignment...")
 for position in tqdm(all_positions, disable=(not progressbar)):
 	each_sample = []
 	for input_diff in diffionaries:
@@ -253,6 +260,7 @@ for position in tqdm(all_positions, disable=(not progressbar)):
 
 assert len(incongruence['masked_total_positions']) + len(incongruence['snp_incongrence_positions']) == len(incongruence['incongruent_positions'])
 
+print("Generated alignment.")
 printwrite_lines(alignment, args.alignment_outfile, both=args.veryverbose)
 if not args.verbose:
 	print("Not printing full alignment to stdout (override with -vv)")
