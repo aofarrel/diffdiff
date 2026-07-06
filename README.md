@@ -32,6 +32,12 @@ Alignments and summary information can be written to files via `-ao` and `-so` r
 ### Provided test files, default
 <img src="./img/default.png" alt="colors" width="600"/>
 
+### Provided test files, `-c`:
+<img src="./img/arg_colors.png" alt="colors" width="600"/>
+
+### Provided test files, `-c --deuteranopia`:
+<img src="./img/args_colors_and_deuteranopia.png" alt="colors" width="600"/>
+
 ### 188 diffs, `-c`:
 This is a good example of why this works best with highly clonal samples; one sample with a lot of masking will hide most ref-SNP differences.
 <br>
