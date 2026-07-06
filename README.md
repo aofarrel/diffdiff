@@ -27,16 +27,9 @@
  For fun, 188 diff files derived from NCBI SRA data were input, totalling 4,236,876 mentioned sites. On a 2019 x86 Macbook Pro, the alignment finished in 6 minutes and 34 seconds.
 
 ## Examples
-Alignments and summary information can be written to files via `-ao` and `-so` respectively. Below are representations of stdout.
+Alignments and summary information can be written to files via `-ao` and `-so` respectively. Below are representations of stdout in my terminal. Try `-a` instead of `-c` (or use neither) if you prefer dark-colored terminals.
 
-Provided test files, no color options:
-![image](./img/default.png)
-
-Provided test files, `-c`:
-![image](./img/colors.png)
-
-Provided test files, `-c --deuteranopia`:
-![image](./img/colors_and_deuteranopia.png)
-
-188 diffs, `-c` (and a good example of why this works best with highly clonal samples; one sample with a lot of masking will hide most ref-SNP differences):
+### 188 diffs, `-c`:
+This is a good example of why this works best with highly clonal samples; one sample with a lot of masking will hide most ref-SNP differences.
+<br>
 ![image](./img/you_can_do_this_if_you_really_want.png)
