@@ -1,7 +1,11 @@
 version 1.0
 
-# Two seperate tasks for diffdiff to avoid having to deal with the headache
-# of WDL's handling of optional files in downstream tasks.
+#
+# Originally written for Tree Nine, this WDL is now a simple standalone wrapper for 
+# the Python program. Most users would likely prefer to use the Python program.
+#
+# If backmasking, must be run with --copy-input-files on miniwdl
+#
 
 task diffdiff_usher_mask {
     input {
@@ -12,7 +16,7 @@ task diffdiff_usher_mask {
     
     echo "~{sep='\n' diffs}" >> diff_paths.txt
     
-    python3 diffdiff.py diff_paths.txt -mo usher_mask.tsv
+    python3 diffdiff.py diff_paths.txt -ao full_alignment.txt -no noteworthy_alignment.txt -mo usher_mask.tsv
     
     >>>
     runtime {
@@ -23,11 +27,13 @@ task diffdiff_usher_mask {
 		preemptible: 2
 	}
     output {
+        File full_alignment = "full_alignment.txt"
+        File noteworthy_alignment = "noteworthy_alignment.txt"
         File usher_mask = "usher_mask.tsv"
     }
 }
 
-task diffdiff_backmask { # must be run with --copy-input-files on miniwdl
+task diffdiff_backmask {
     input {
         Array[File] diffs
     }
@@ -43,7 +49,7 @@ task diffdiff_backmask { # must be run with --copy-input-files on miniwdl
     
     find . -name "*.diff" >> diff_paths.txt
     
-    python3 diffdiff.py diff_paths.txt -b
+    python3 diffdiff.py diff_paths.txt -ao full_alignment.txt -no noteworthy_alignment.txt -b
     
     >>>
     runtime {
@@ -54,6 +60,8 @@ task diffdiff_backmask { # must be run with --copy-input-files on miniwdl
 		preemptible: 2
 	}
     output {
+        File full_alignment = "full_alignment.txt"
+        File noteworthy_alignment = "noteworthy_alignment.txt"
         Array[File] backmasked_diffs = glob("*.backmask.diff")
     }
 }
@@ -76,6 +84,13 @@ workflow DiffDiff {
             input:
                 diffs = diffs
         }
+    }
+
+    output {
+        File? full_alignment = select_first([diffdiff_backmask.full_alignment, diffdiff_usher_mask.full_alignment])
+        File? noteworthy_positions_alignment = select_first([diffdiff_backmask.noteworthy_alignment, diffdiff_usher_mask.noteworthy_alignment])
+        File? usher_mask = diffdiff_usher_mask.usher_mask
+        Array[File]? backmasked_diffs = diffdiff_backmask.backmasked_diffs
     }
 
 }

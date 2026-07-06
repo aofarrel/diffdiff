@@ -7,23 +7,23 @@ except ImportError:
 	print("Failed to import tqdm, please pip install it")
 	exit(1)
 
-
-#BLACK_LIGHT_BG = '\033[30m'
+# Colors for -c and -a
 HIGHLIGHT_CYAN_LIGHT_BG = '\u001b[48;5;87m'
 HIGHLIGHT_GREEN_LIGHT_BG = '\u001b[48;5;47m'
 HIGHLIGHT_GRAY_LIGHT_BG = '\u001b[48;5;250m'
-
-#BLACK_DARK_BG = '\033[97m'
 HIGHLIGHT_CYAN_DARK_BG = '\033[46m'  # also try \u001b[48;5;75m
 HIGHLIGHT_GREEN_DARK_BG = '\033[42m' # also try \u001b[48;5;70m
 HIGHLIGHT_GRAY_DARK_BG = '\033[100m' # also try \u001b[48;5;239m
-
 DEFAULT = "\033[39m"
 END = '\033[0m'
 FADE = '\u001b[48;2;250m'
 RED = '\033[91m'            # TODO: this might be terrible for RG colorblindness
 
-parser = argparse.ArgumentParser(description="diffdiff - diff your diff files", formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description="diffdiff - diff your diff files"
+	"\n\nEssentially a multiple sequence alignment tool for MAPLE-formatted diff files, diffdiff compares an arbitrary "
+	"\nnumber of samples to each other to find positions where one sample might mask another's SNP, where one sample has "
+	"\na SNP where another calls reference, etc. This should not be considered a replacement for phylogenetics software. ", 
+	formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("input_file_with_diff_paths",
 	help="Input file listing paths of diff files to compare, one path per line")
@@ -42,15 +42,15 @@ outfile_group.add_argument("-so", "--summary_outfile", default=None, required=Fa
 
 color_group = parser.add_argument_group(
     title="Display & Color Options",
-    description="Settings to tweak how alignments show in stdout (also affects outfiles!)")
+    description="Optionally colorize alignments in stdout and outfiles")
 color_group.add_argument("-c", "--colors", action="store_true",
-	help=f"[for black-background terminals try also using -l] Alignments will be marked with ANSI color codes. Specifically:"
+	help=f"Alignments will be marked with ANSI color codes. Specifically:"
 	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_LIGHT_BG}TGGG{END}"
 	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_LIGHT_BG}T{RED}RR{DEFAULT}T{END}"
 	f"\nmasked SNP: {HIGHLIGHT_GRAY_LIGHT_BG}T---{END}"
 	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
-color_group.add_argument("-l", "--light", action="store_true",
-	help=f"[not needed if not -c] Adjusts -c to work better on black-background terminals. " 
+color_group.add_argument("-a", "--altcolors", action="store_true",
+	help=f"Alternative to -c that may look better on black-background terminals. " 
 	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_DARK_BG}TGGG{END}"
 	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{DEFAULT}T{END}"
 	f"\nmasked SNP: {HIGHLIGHT_GRAY_DARK_BG}T---{END}"
@@ -71,7 +71,6 @@ backmask_group = parser.add_argument_group(
     description="diffdiff includes rudimentary support for masking positions where at least one position is already masked. "
     "\nWe call this backmasking (since you're ''going back'' and re-masking). For example, if four samples respectively "
     "\ncall SNP, ref, mask, ref at position X, after they are backmasked, all four samples will now be mask at position X. "
-    "\n"
     "\ndiffdiff's method of backmasking is rudimentary, deprecated, and generally not recommended, especially if you "
     "\nare working with more than ten files, as it scales poorly. For a more performant form of backmasking, automatically "
     "\napplied to samples within a given SNP distance, please see Tree Nine instead: github.com/aofarrel/tree_nine")
@@ -80,38 +79,39 @@ backmask_group.add_argument("-b", "--backmask", action="store_true",
 backmask_group.add_argument("-bv", "--backmask_verbose", action="store_true",
 	help="List all positions that get backmasked and print an alignment of backmasked diffs (no effect if not -b)")
 
-
 args = parser.parse_args()
 
 if args.veryverbose:
 	args.verbose = True
 
-if args.light and not args.colors:
-	print("WARNING: You used -l without -c but -l is only necessary if -c AND a black-background terminal. To enable highlights use -c too.")
+if args.colors and args.altcolors:
+	raise ValueError("Found both -c and -a. Please specify either -c for light terminal backgrounds and -a for dark terminal backgrounds.")
 
-BLACK = DEFAULT if (args.light and args.colors) else DEFAULT
-HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_CYAN_LIGHT_BG
-HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GREEN_LIGHT_BG
-HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if (args.light and args.colors) else HIGHLIGHT_GRAY_LIGHT_BG
+HIGHLIGHT_CYAN = HIGHLIGHT_CYAN_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_CYAN_LIGHT_BG
+HIGHLIGHT_GREEN = HIGHLIGHT_GREEN_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_GREEN_LIGHT_BG
+HIGHLIGHT_GRAY =  HIGHLIGHT_GRAY_DARK_BG if (args.altcolors and args.colors) else HIGHLIGHT_GRAY_LIGHT_BG
 
-C_BLACK = BLACK if args.colors else ''
-C_RED = RED if args.colors else ''
-C_END = END if args.colors else ''
+C_DEFAULT = DEFAULT if (args.colors or args.altcolors) else ''
+C_RED = RED if (args.colors or args.altcolors) else ''
+C_END = END if (args.colors or args.altcolors) else ''
 C_HIGHLIGHT_CYAN = HIGHLIGHT_CYAN if args.colors else ''
 C_HIGHLIGHT_GREEN = HIGHLIGHT_GREEN if args.colors else ''
 C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if args.colors else ''
-C_FADE = FADE if args.colors else ''
+C_FADE = FADE if (args.colors or args.altcolors) else ''
 
 def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
 	if both:
 		for line in lines:
 			print(line)
 	if outfile is not None:
+		if args.colors or args.altcolors:
+			print("WARNING: You're writing to an outfile with -c or -a enabled. The outfile will also have ANSI color codes.")
+			print("This is intentional so highlights show in cat, but it may appear corrupted in text editors.")
 		with open(outfile, "w") as f:
 			f.writelines(f"{line}\n" for line in lines)
 		print(f"Wrote to {outfile}")
 
-def printwrite_summary(diffionaries, all_positions, incongruence):
+def printwrite_summary(diffionaries, all_positions, incongruence, masked_snps, incong_snps, icg_ref_snp):
 	lines_to_print=[]
 	lines_to_print.append('')
 	for input_diff in diffionaries:
@@ -120,10 +120,10 @@ def printwrite_summary(diffionaries, all_positions, incongruence):
 	lines_to_print.append(f"\t{len(incongruence['snp_incongrence_positions'])} positions are SNP mismatches (ref-SNP or SNP-SNP)")
 	lines_to_print.append(f"\t{len(incongruence['masked_incongruence_positions'])} positions have a mask-nomask mismatch")
 	lines_to_print.append(f"\t{len(incongruence['masked_total_positions']) - len(incongruence['masked_incongruence_positions'])} positions are masked across all samples")
-	#lines_to_print.append("\nNoteworthy positions summary:")
-	#lines_to_print.append(f"\t{masked_snps} positions of newly-masked SNPs")
-	#lines_to_print.append(f"\t{incong_snps} positions of incongruent SNPs")
-	#lines_to_print.append(f"\t{icg_ref_snp} positions of SNP-ref incongruence")
+	lines_to_print.append("\nNoteworthy positions summary:")
+	lines_to_print.append(f"\t{masked_snps} positions of newly-masked SNPs")
+	lines_to_print.append(f"\t{incong_snps} positions of incongruent SNPs")
+	lines_to_print.append(f"\t{icg_ref_snp} positions of SNP-ref incongruence")
 	printwrite_lines(lines_to_print, args.summary_outfile, both=True)
 
 
@@ -204,7 +204,7 @@ for position in tqdm(all_positions, disable=(not progressbar)):
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
 			# This sample is missing information because it is ref
-			each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
+			each_sample.append(f"{C_RED}R{C_DEFAULT}")  # purposely not using END so the highlight continues
 		else:
 			each_sample.append(input_diff.data[position])
 	samples_at_this_position = ''.join(sample for sample in each_sample)
@@ -251,7 +251,6 @@ assert len(incongruence['masked_total_positions']) + len(incongruence['snp_incon
 printwrite_lines(alignment, args.alignment_outfile, both=args.veryverbose)
 if not args.verbose:
 	print("Not printing full alignment to stdout (override with -vv)")
-printwrite_summary(diffionaries, all_positions, incongruence)
 
 noteworthy_ordered = sorted(noteworthy)
 masked_snps = 0
@@ -266,6 +265,8 @@ for position in noteworthy_ordered:
 		icg_ref_snp += 1
 	else:
 		raise ValueError(f"Unrecognized noteworthy alignment at {position}: {noteworthy.get(position)[1]}")
+
+printwrite_summary(diffionaries, all_positions, incongruence, masked_snps, incong_snps, icg_ref_snp)
 
 total_noteworthy_positions = masked_snps + incong_snps + icg_ref_snp
 print_noteworthy_alignment = ([len(diff_files) < 100 and total_noteworthy_positions < 200] or args.verbose)
@@ -328,7 +329,7 @@ if args.backmask:
 			for backmasked_diff in backmasked_diffs:
 				if position not in backmasked_diff.data.keys():
 					# this sample is missing information because it is ref
-					each_sample.append(f"{C_RED}R{C_BLACK}")  # purposely not using END so the highlight continues
+					each_sample.append(f"{C_RED}R{C_DEFAULT}")  # purposely not using END so the highlight continues
 				else:
 					each_sample.append(backmasked_diff.data[position])
 			samples_at_this_position = ''.join(sample for sample in each_sample)
