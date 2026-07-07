@@ -1,11 +1,12 @@
-# pylint: disable=W0311,W1514,C0103,C0321,C0301
+# pylint: disable=W0311,W1514,C0103,C0321,C0301,R1735,R1734
 
 import argparse
 try:
 	from tqdm import tqdm
 except ImportError:
-	print("Failed to import tqdm, please pip install it")
-	exit(1)
+	print("Failed to import tqdm, progress bars will not be printed.")
+	def tqdm(iterable, *args, **kwargs):  # pylint: disable=W0621,W0613,C0116
+		return iterable
 
 # Colors for -c and -a
 HIGHLIGHT_CYAN_LIGHT_BG = '\u001b[48;5;87m'
@@ -22,7 +23,7 @@ RED = '\033[91m'
 parser = argparse.ArgumentParser(description="diffdiff - diff your diff files"
 	"\n\nEssentially a multiple sequence alignment tool for MAPLE-formatted diff files, diffdiff compares an arbitrary "
 	"\nnumber of samples to each other to find positions where one sample might mask another's SNP, where one sample has "
-	"\na SNP where another calls reference, etc. This should not be considered a replacement for phylogenetics software. ", 
+	"\na SNP where another calls reference, etc. This should not be considered a replacement for phylogenetics software. ",
 	formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("input_file_with_diff_paths",
@@ -50,13 +51,13 @@ color_group.add_argument("-c", "--colors", action="store_true",
 	f"\nmasked SNP: {HIGHLIGHT_GRAY_LIGHT_BG}T---{END}"
 	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
 color_group.add_argument("-a", "--altcolors", action="store_true",
-	help=f"Alternative to -c that may look better on black-background terminals. " 
+	help=f"Alternative to -c that may look better on black-background terminals. "
 	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_DARK_BG}TGGG{END}"
 	f"\nSNP-ref mismatches: {HIGHLIGHT_GREEN_DARK_BG}T{RED}RR{DEFAULT}T{END}"
 	f"\nmasked SNP: {HIGHLIGHT_GRAY_DARK_BG}T---{END}"
 	f"\nmasked ref: {FADE}--{RED}R{DEFAULT}-{END}")
 color_group.add_argument("-d", "--deuteranopia", action="store_true",
-	help=f"If -c or -a, leave reference calls in terminal default color instead of red, "
+	help="If -c or -a, leave reference calls in terminal default color instead of red, "
 	"in attempt to avoid SNP-ref mismatches (highlighted in green) being illegible with "
 	"common forms of colorblindness, or for those who simply prefer not to mark reference. "
 	"Null op if neither -c nor -a. Depending on terminal colors this may not be needed. ")
@@ -105,22 +106,24 @@ C_HIGHLIGHT_GRAY = HIGHLIGHT_GRAY if (args.colors or args.altcolors) else ''
 C_FADE = FADE if (args.colors or args.altcolors) else ''
 
 def printwrite_lines(lines: list, outfile: None | str, both=False) -> None:
+	'''Prints and/or writes lines to a file'''
 	if both:
-		for line in lines:
+		for line in lines:  # pylint: disable=W0621
 			print(line)
 	if outfile is not None:
 		if args.colors or args.altcolors:
 			print("WARNING: You're writing to an outfile with -c or -a enabled. The outfile will also have ANSI color codes.")
 			print("This is intentional so highlights show in cat, but it may appear corrupted in text editors.")
-		with open(outfile, "w") as f:
+		with open(outfile, "w") as f:  # pylint: disable=W0621
 			f.writelines(f"{line}\n" for line in lines)
 		print(f"Wrote to {outfile}")
 
-def printwrite_summary(diffionaries, all_positions, incongruence, masked_snps, incong_snps, icg_ref_snp):
+def printwrite_summary(diffionaries, all_positions, incongruence, masked_snps, incong_snps, icg_ref_snp): # pylint: disable=W0621
+	'''Handles printing/file out of summary information'''
 	lines_to_print=[]
 	lines_to_print.append('')
-	for input_diff in diffionaries:
-		lines_to_print.append(f"{input_diff.sample} has {len(input_diff.data)} non-reference SNPs and masked positions")
+	for some_diff in diffionaries:
+		lines_to_print.append(f"{some_diff.sample} has {len(some_diff.data)} non-reference SNPs and masked positions")
 	lines_to_print.append(f"\nComparing across all diffs:\n{len(incongruence['incongruent_positions'])} out of {len(all_positions)} positions have at least one mismatch or mask.")
 	lines_to_print.append(f"\t{len(incongruence['snp_incongrence_positions'])} positions are SNP mismatches (ref-SNP or SNP-SNP)")
 	lines_to_print.append(f"\t{len(incongruence['masked_incongruence_positions'])} positions have a mask-nomask mismatch")
@@ -142,6 +145,7 @@ class Diff:
 		# {123: "A", 125: "T"}
 
 	def print_all(self):
+		'''Print in diff format'''
 		print(f">{self.sample}")
 		for positions, snps in self.data.items():
 			print(f"{positions}\t{snps}\t1")
@@ -155,13 +159,9 @@ with open(args.input_file_with_diff_paths) as pile_of_diffs:
 			print(line)
 	print(f"{len(diff_files)} diffs were input.")
 
-if len(diff_files) > 100 or args.veryverbose:
-	progressbar = True
-else:
-	progressbar = False
-
+progressbar = (args.veryverbose or len(diff_files) > 100)
 print("Converting to dictionaries...")
-for diff_file in tqdm(diff_files, disable=(not progressbar)):
+for diff_file in tqdm(diff_files, disable=not progressbar):
 	with open(diff_file, "r") as input_diff:
 		sample_name = input_diff.readline().strip().strip(">") # after this readline() we are now at the first (0th) SNP position
 		diff_data = input_diff.readlines()                     # read all remaining (eg, all non-sample) lines
@@ -183,7 +183,7 @@ for diff_file in tqdm(diff_files, disable=(not progressbar)):
 	diffionaries.append(this_diff)
 print(f"Converted {len(diff_files)} diffs to dictionaries.")
 
-if args.print_diffionaries: [diff.print_all() for diff in diffionaries]
+if args.print_diffionaries: [diff.print_all() for diff in diffionaries]  # pylint: disable=W0106
 
 all_positions = set()
 for i, input_diff in enumerate(diffionaries):
@@ -194,7 +194,7 @@ all_positions = sorted(all_positions)
 print(f"Processed {len(all_positions)} sites.")
 
 # stores just position integers for all types of mismatch
-incongruence = {'incongruent_positions': set(), 
+incongruence = {'incongruent_positions': set(),
 				'snp_incongrence_positions': set(),     # eg, one sample is ref and another is C SNP, or one is G SNP and another is T SNP
 				'masked_incongruence_positions': set(), # eg, one sample is G SNP and another is masked, or one is ref and another is masked
 				'masked_total_positions': set()}        # masked_incongruence + positions where ALL samples get masked
@@ -205,13 +205,9 @@ noteworthy = dict()
 # alignment, which excludes ref-mask and full-mask positions unless args.veryverbose
 alignment = list()
 
-if len(all_positions) > 1000 or args.veryverbose:
-	progressbar = True
-else:
-	progressbar = False
-
+progressbar = (args.veryverbose or len(all_positions) > 1000)
 print("Generating alignment...")
-for position in tqdm(all_positions, disable=(not progressbar)):
+for position in tqdm(all_positions, disable=not progressbar):
 	each_sample = []
 	for input_diff in diffionaries:
 		if position not in input_diff.data.keys():
@@ -239,7 +235,7 @@ for position in tqdm(all_positions, disable=(not progressbar)):
 		else:
 			# This position is masked in ALL samples (no incongruence)
 			if args.veryverbose: alignment.append(f"{C_FADE}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}")
-	
+
 	elif samples_at_this_position.count(samples_at_this_position[0]) != len(samples_at_this_position):
 		incongruence['incongruent_positions'].add(position)
 		incongruence['snp_incongrence_positions'].add(position)
@@ -252,8 +248,8 @@ for position in tqdm(all_positions, disable=(not progressbar)):
 			position_and_samples = f"{C_HIGHLIGHT_GREEN}{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}{C_END}"
 			noteworthy.update({str(position).zfill(7): [position_and_samples, "SNP-ref incongruence"]})
 		alignment.append(f"{position_and_samples}")
-		
-	
+
+
 	else:
 		# All samples either ref or the same SNP
 		alignment.append(f"{str(position).zfill(7)}\t{''.join(sample for sample in each_sample)}")
