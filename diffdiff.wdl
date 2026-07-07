@@ -12,7 +12,7 @@ task diffdiff_usher_mask {
         Array[File] diffs
     }
     command <<<
-    wget https://raw.githubusercontent.com/aofarrel/diffdiff/main/diffdiff.py
+    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.1.0/diffdiff.py
     
     echo "~{sep='\n' diffs}" >> diff_paths.txt
     
@@ -39,7 +39,7 @@ task diffdiff_backmask {
     }
     command <<<
     set -eux pipefail
-    wget https://raw.githubusercontent.com/aofarrel/diffdiff/main/diffdiff.py
+    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.1.0/diffdiff.py
     
     DIFFS=( ~{sep=' ' diffs} )
     for FILE in "${DIFFS[@]}"
