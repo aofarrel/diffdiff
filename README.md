@@ -6,6 +6,8 @@
  * You want to validate phylogenetic analysis/distance matrices between samples
  * You want to run matUtils mask
  * You want to backmask (see -h) some diff files, are aware of the limitations, and cannot/do not wish to use Tree Nine's method of backmasking
+
+ Also included are two helper scripts for dealing with concatenated diff files. **redact_samples.py** will remove denylisted samples from a combined diff file (useful for redacting samples post-[Tree Nine](https://github.com/aofarrel/tree_nine)) and **split_concatenated_diff.sh** will split a concatenated diff file into single-sample diff files.
  
  ## What are MAPLE diff files?
  Essentially VCFs but with much less detail, see ./tests/ for examples. Everything is represented as either a SNP or an explicit mask (`-`). First column is allele, second is position, third is how long the allele is. Example: `A 123 2` means that at positions 123 and 124, non-reference SNP `A` is called.
@@ -15,7 +17,7 @@
  ## Usage
  1. Get this repo, or at least diffdiff.py, into your workdir (`git clone` or whatever)
  2. OPTIONAL: `pip install tqdm` for progress bars
- 3. If you have one concatenated diff file instead of one per sample, run `/bin/bash split_concatenated_diff.sh` to split it first.
+ 3. If you have one concatenated diff file instead of one per sample, run `/bin/bash split_concatenated_diff.sh` to split it first
  4. Generate a newline-delimited file listing paths to your diffs (see ./tests/paths.txt for example)
  5. `python3 diffdiff.py [paths_file]`
 
