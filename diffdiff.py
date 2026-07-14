@@ -30,8 +30,8 @@ parser.add_argument("input_file_with_diff_paths",
 	help="Input file listing paths of diff files to compare, one path per line")
 
 outfile_group = parser.add_argument_group(
-    title="Output File Options",
-    description="Enable various optional outfiles")
+	title="Output File Options",
+	description="Enable various optional outfiles")
 outfile_group.add_argument("-ao", "--alignment_outfile", default=None, required=False,
 	help="Outfile of full alignment of all positions")
 outfile_group.add_argument("-no", "--noteworthy_outfile", default=None, required=False,
@@ -42,8 +42,8 @@ outfile_group.add_argument("-so", "--summary_outfile", default=None, required=Fa
 	help="Outfile of summary information")
 
 color_group = parser.add_argument_group(
-    title="Display & Color Options",
-    description="Optionally colorize alignments in stdout and outfiles")
+	title="Display & Color Options",
+	description="Optionally colorize alignments in stdout and outfiles")
 color_group.add_argument("-c", "--colors", action="store_true",
 	help=f"Alignments will be marked with ANSI color codes. Specifically:"
 	f"\nSNP-SNP mismatches: {HIGHLIGHT_CYAN_LIGHT_BG}TGGG{END}"
@@ -63,8 +63,8 @@ color_group.add_argument("-d", "--deuteranopia", action="store_true",
 	"Null op if neither -c nor -a. Depending on terminal colors this may not be needed. ")
 
 verbosity_group = parser.add_argument_group(
-    title="Verbosity",
-    description="Just how much text do you want to dump to stdout?")
+	title="Verbosity",
+	description="Just how much text do you want to dump to stdout?")
 verbosity_group.add_argument("-v", "--verbose", action="store_true",
 	help="Force printing of an alignment of noteworthy positions (-no) to stdout, even if >100 diffs or >200 noteworthy positions")
 verbosity_group.add_argument("-vv", "--veryverbose", action="store_true",
@@ -73,13 +73,13 @@ verbosity_group.add_argument("-pd", "--print_diffionaries", action="store_true",
 	help="[not recommended] Print all diff files as they are interpreted as dictionaries (does not interact with -v nor -vv)")
 
 backmask_group = parser.add_argument_group(
-    title="Backmasking",
-    description="diffdiff includes rudimentary support for masking positions where at least one position is already masked. "
-    "\nWe call this backmasking (since you're ''going back'' and re-masking). For example, if four samples respectively "
-    "\ncall SNP, ref, mask, ref at position X, after they are backmasked, all four samples will now be mask at position X. "
-    "\ndiffdiff's method of backmasking is rudimentary, deprecated, and generally not recommended, especially if you "
-    "\nare working with more than ten files, as it scales poorly. For a more performant form of backmasking, automatically "
-    "\napplied to samples within a given SNP distance, please see Tree Nine instead: github.com/aofarrel/tree_nine")
+	title="Backmasking",
+	description="diffdiff includes rudimentary support for masking positions where at least one position is already masked. "
+	"\nWe call this backmasking (since you're ''going back'' and re-masking). For example, if four samples respectively "
+	"\ncall SNP, ref, mask, ref at position X, after they are backmasked, all four samples will now be mask at position X. "
+	"\ndiffdiff's method of backmasking is rudimentary, deprecated, and generally not recommended, especially if you "
+	"\nare working with more than ten files, as it scales poorly. For a more performant form of backmasking, automatically "
+	"\napplied to samples within a given SNP distance, please see Tree Nine instead: github.com/aofarrel/tree_nine")
 backmask_group.add_argument("-b", "--backmask", action="store_true",
 	help="Create backmasked diff files in workdir with pattern [input_name].backmask.diff")
 backmask_group.add_argument("-bv", "--backmask_verbose", action="store_true",
