@@ -30,4 +30,4 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
 12. In Terra, upload your modified `MODIFIED_whatever_set_membership.tsv` file
 	* Terra will throw a warning saying the data table already exists, but this is okay
 	* As with before wait for the UI to show a success
-13. Run Tree Nine on a new batch of samples as usual. Your redacted samples will be considered dropped samples.
+13. Run Tree Nine on a new batch of samples as usual. Your combined diff file will be the MODIFIED one, your samples_added file will also be the MODIFIED one. In terms of clustering, your redacted samples will be reported as dropped samples as if they became unclustered due to reassignment, but they should not appear in the unclustered samples file.
