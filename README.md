@@ -12,9 +12,10 @@
  ## What are MAPLE diff files?
  Essentially VCFs but with much less detail, see ./tests/ for examples. Everything is represented as either a SNP or an explicit mask (`-`). First column is allele, second is position, third is how long the allele is. Example: `A 123 2` means that at positions 123 and 124, non-reference SNP `A` is called.
 
- You can generate MAPLE diff files from VCFs using [this WDL](https://github.com/aofarrel/vcf_to_diff_wdl) or [this pure Python script](https://github.com/lilymaryam/parsevcf). If you're starting with FASTQs or BioSample accessions, consider [the myco WDL pipeline](https://github.com/aofarrel/myco/) which outputs MAPLE diff files at the end.
+ You can generate MAPLE diff files from VCFs using [this WDL](https://github.com/aofarrel/vcf_to_diff_wdl) or [this pure Python script](https://github.com/lilymaryam/parsevcf). If you're starting with FASTQs or BioSample accessions, consider [the myco pipeline](https://github.com/aofarrel/myco/) which outputs MAPLE diff files at the end. To place MAPLE diff files on a phylogenetic tree, use [Tree Nine](https://github.com/aofarrel/tree_nine).
 
  ## Usage
+ ### diffdiff.py
  1. Get this repo, or at least diffdiff.py, into your workdir (`git clone` or whatever)
  2. OPTIONAL: `pip install tqdm` for progress bars
  3. If you have one concatenated diff file instead of one per sample, run `/bin/bash split_concatenated_diff.sh` to split it first
@@ -23,10 +24,22 @@
 
  For all arguments please run `python3 diffdiff.py -h`
 
+ ### redact_samples.py
+ See [here](./README_redact_samples.md). redact_samples.py does not require any extenal libraries.
+
+ ### split_concatenated_diff.sh
+ `/bin/bash split_concatenated_diff.sh [your_input_file_here.diff]`
+
+ Do not run with `-d`/`--strip-dash` unless you know what you're doing, as it will remove all masked positions, which are required for accurate phylogenetic placement.
+
 ## Benchmarking
+ ### diffdiff.py
  For its intended use case (less than ten diff files), diffdiff will run basically instantly. If you're using more than that, you probably should be using phylogenetics software instead, but diffdiff will still work. Time to run is influenced by number of diff files and number of positions total. File outputs (`-ao`, `-so`, `-no`) are negligible factors on runtime, except when backmasking (see -h for more on backmasking).
 
  For fun, 188 diff files derived from NCBI SRA data were input, totaling 4,236,876 mentioned sites. On a 2019 x86 Macbook Pro, the alignment finished in 6 minutes and 34 seconds.
+
+ ### redact_samples.py
+ Removing 1095 samples from a 11313 sample combined diff file and samples_added file took six seconds total.
 
 ## Examples
 Alignments and summary information can be written to files via `-ao` and `-so` respectively. Below are representations of stdout in my terminal. Try `-a` instead of `-c` (or use neither) if you prefer dark-colored terminals.

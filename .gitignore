@@ -10,3 +10,4 @@ tests/real_data_paths.txt
 2026*/*
 /old_version_backup
 MODIFIED_*
+/extracted_temp
