@@ -24,7 +24,7 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
 9. Go to your unzipped set table's **unmodified** `whatever_set/whatever_set_entity.tsv` file and edit the most recent completed Tree Nine run's values for updated_diff_file **and** updated_diff_contents to point to their respective MODIFIED files.
 	* Example: In the set table, the most recent completed Tree Nine run has the value `gs://fc-bucketname/submissions/submission_id/Tree_Nine/workflow_id/call-cat_diff_files/glob_id/samples_added_2026-06-14` for updated_diff_contents (ie, that was a workflow-level output). You could replace that with `gs://fc-bucketname/redacted_versions/MODIFIED_samples_added_2026-06-14`, then repeat for updated_diff_file.
 	* Do not worry about the cluster JSON, persistent META file, or persistent ID files. They will retain traces of your redacted samples, but they are not user-facing, and for a variety of reasons it is a bad idea to attempt to redact them too.
-10. In Terra, delete the bucketname data table, but NOT the sample-level whatever data table
+10. In Terra, delete the set data table, but NOT the sample-level data table
 11. In Terra, upload your manually-modified `whatever_set/whatever_set_entity.tsv`, which now has those two updated paths to point to the MODIFIED combined diff and samples_added files, as a data table in the usual method
 	* You can use FISS for this but for most users dragging-and-dropping into the UI is simpler (wait for the UI to show success in the top right, will take a minute or two)
 12. In Terra, upload your modified `MODIFIED_whatever_set_membership.tsv` file
