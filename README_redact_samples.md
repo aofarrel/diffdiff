@@ -7,9 +7,10 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
 1. Download the most recent completed Tree Nine run's (heneforth "last run"):
 	* combined diff file (bigtree_combinedYYYY-MM-DD.diff)
  	* samples added file (samples_added_YYYY-MM-DD)
-    * ...as well as **set** data table, which will be a zip (whatever_set.zip)
-2. Create a denylist ONLY containing denylisted samples that are already present in your combined diff file/samples added file (recall that both files reference the same samples)
-	* The easiest way to do this if you are redacting samples that match a certain pattern: Use your favorite regular expression doohickey (sed, perl, Sublime Text, etc) to pull out all lines matching that pattern from the samples_added file and save as denylist.txt
+    * ...as well as **set** data table from Terra's Data tab, which will be a zip (whatever_set.zip)
+2. Create a denylist ONLY containing denylisted samples that are already present in your combined diff file/samples added file 
+	* Recall that your combined diff file and your samples added file reference the exact same samples
+	* If redacting samples that match a certain pattern, use your favorite regular expression doohickey (sed, perl, Sublime Text, etc) to pull out all lines matching that pattern from the samples_added file and save as denylist.txt
 	* If you choose not to do this and instead use a denylist that includes samples not in the combined diff file, the next step will throw an error to prevent footguns. You can suppress that error with `--looseygoosey` but this is not recommended.
 4. `python3 redact_samples.py denylist.txt --samples_added_file samples_added_YYYY-MM-DD --combined_diff_file bigtree_combined_YYYY-MM-DD.diff`
 5. Unzip whatever_set.zip to get whatever_set/whatever_set_membership.tsv and whatever_set/whatever_set_entity.tsv, but keep the zip too
