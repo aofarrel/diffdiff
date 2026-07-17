@@ -30,6 +30,23 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
 12. In Terra, upload your modified `MODIFIED_whatever_set_membership.tsv` file
 	* Terra will throw a warning saying the data table already exists, but this is okay
 	* As with before wait for the UI to show a success
-13. To finish redaction, run Tree Nine on a new batch of samples, **with `process_clusters.no_dropped_sample_failsafe` set to true**
-	* Your combined diff file will be the MODIFIED one, your samples_added file will also be the MODIFIED one
-    * In terms of clustering, your redacted samples will be reported as dropped samples as if they became unclustered due to reassignment, but they should not appear in the unclustered samples file
+13. To finish redaction, run Tree Nine on a batch of brand new samples, **with `process_clusters.no_dropped_sample_failsafe` set to true**. Tree Nine will treat your redacted samples as if they are dropped samples (but they will not appear in the unclustered samples file). This run will take in:
+	* Last run's **unmodified** cluster JSON, persistent META, and persistent IDs
+    * Your MODIFIED combined diff file (`updated_diff_file`)
+    * Your MODIFIED samples_added file (`updated_diff_contents`)
+    * `process_clusters.no_dropped_sample_failsafe` = `true`
+    * Everything else is like a normal Tree Nine run
+   
+> [!WARNING]  
+> You should not attempt to redact the cluster JSON, the persistent cluster IDs file, nor the persistent cluster META file. It is unnecessary because running Tree Nine (see step 12) will create new versions of these files without the samples.<sup>†</sup> It is also quite likely to break things.
+>
+> If you ever end up in a scenario where you *absolutely must, for legal reasons,* redact *every* file, retaining *no previous versions* of older files, you must ensure:
+> * you do not create one-sample clusters; if one is created, you must manually handle it as a decimated cluster
+> * you properly handle parent clusters with decimated children
+> * you handle all of the non-user-facing JSON fields (newly_decimated vs decimated, newly_updated, samples_previously, etc)...
+> * you force *all* Microreact projects to update in step 12 via `process_clusters.force_microreact_update`, because a full redaction would prevent the pipeline from detecting the samples being dropped ergo might not trigger Microreact updates ergo might leave redacted samples up on Microreact
+> 	* even though Microreact projects can be downloaded as .json files in the UI, there is no way to do that with the API, which means you (nor Tree Nine) can check Microreact project's contents with the API
+>   * note that `process_clusters.force_microreact_update` might force Microreact projects of existing decimated clusters to no longer list what samples were in that cluster prior to decimation, as that relies on the "sample_id_previously" field which is cleared every run (to avoid creating hugely massive JSONs)
+
+
+<sup>†</sup>The cluster JSON holds onto the names of samples previously in the cluster, so old sample names will be mentioned in the "sample_id_previously" field of the JSON you generate via Tree Nine (step 12). However, if you do an additional run after that, all trace will be removed, because "sample_id_previously" only goes back to the previous run.
