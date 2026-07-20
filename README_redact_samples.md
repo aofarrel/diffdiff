@@ -45,8 +45,8 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
 > * you do not create one-sample clusters; if one is created, you must manually handle it as a decimated cluster
 > * you properly handle parent clusters with decimated children
 > * you handle all of the non-user-facing JSON fields (newly_decimated vs decimated, newly_updated, samples_previously, etc)...
-> * you force *all* Microreact projects to update in step 12 via `process_clusters.force_microreact_update`, because a full redaction would prevent the pipeline from detecting the samples being dropped ergo might not trigger Microreact updates ergo might leave redacted samples up on Microreact
-> 	* even though Microreact projects can be downloaded as .json files in the UI, there is no way to do that with the API, which means you (nor Tree Nine) can check Microreact project's contents with the API
+> * you force *all* Microreact projects to update in step 12 via `process_clusters.force_microreact_update`, because a full redaction would prevent the pipeline from detecting the samples being dropped, ergo might not trigger Microreact updates, ergo might leave redacted samples up on Microreact
+> 	* even though Microreact projects can be downloaded as .json files in the UI, there is no way to do that with the API, which means you (nor Tree Nine) cannot check Microreact project's contents with the API
 >   * note that `process_clusters.force_microreact_update` might force Microreact projects of existing decimated clusters to no longer list what samples were in that cluster prior to decimation, as that relies on the "sample_id_previously" field which is cleared every run (to avoid creating hugely massive JSONs)
 
 
