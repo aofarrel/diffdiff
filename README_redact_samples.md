@@ -39,9 +39,9 @@ These instructions assume you're running Tree Nine in Terra but the same logic a
     * Everything else is like a normal Tree Nine run
    
 > [!WARNING]  
-> You should not attempt to redact the cluster JSON, the persistent cluster IDs file, nor the persistent cluster META file. It is unnecessary because running Tree Nine (see step 12) will create new versions of these files without the samples.<sup>†</sup> It is also quite likely to break things.
+> You should not attempt to redact the cluster JSON, the persistent cluster IDs file, nor the persistent cluster META file. It is unnecessary because running Tree Nine (see step 12) will create new versions of these files without the samples.<sup>†</sup> It is also quite likely to break things. That is to say: Even if you are required redact every file, running Tree Nine will generate new versions of those files, so just use those.
 >
-> If you ever end up in a scenario where you *absolutely must, for legal reasons,* redact *every* file, retaining *no previous versions* of older files, you must ensure:
+> If you ever end up in a scenario where you *absolutely must* redact samples from previous runs due to being caught in a recordkeeping quagmire, you must ensure:
 > * you do not create one-sample clusters; if one is created, you must manually handle it as a decimated cluster
 > * you properly handle parent clusters with decimated children
 > * you handle all of the non-user-facing JSON fields (newly_decimated vs decimated, newly_updated, samples_previously, etc)...
