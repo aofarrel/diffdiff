@@ -294,7 +294,7 @@ if args.mask_outfile:
 	print(f"\nWrote information about incongruence in masking to {args.mask_outfile}")
 
 if args.backmask:
-	if len(diff_files) < 10:
+	if len(diff_files) > 10:
 		print("WARNING: You are backmasking more than 10 diff files. This might be painfully slow.")
 	backmasked_diffs = []
 	for input_diff_object in diffionaries:
