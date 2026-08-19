@@ -12,7 +12,7 @@ task diffdiff_usher_mask {
         Array[File] diffs
     }
     command <<<
-    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.1.0/diffdiff.py
+    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.2.1/diffdiff.py
     
     echo "~{sep='\n' diffs}" >> diff_paths.txt
     
@@ -22,7 +22,7 @@ task diffdiff_usher_mask {
     runtime {
 		cpu: 4
 		disks: "local-disk " + 10 + " HDD"
-		docker: "ashedpotatoes/sranwrp:1.1.15"
+		docker: "ashedpotatoes/sranwrp:1.3.0"
 		memory: "8 GB"
 		preemptible: 2
 	}
@@ -39,7 +39,7 @@ task diffdiff_backmask {
     }
     command <<<
     set -eux pipefail
-    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.1.0/diffdiff.py
+    wget https://raw.githubusercontent.com/aofarrel/diffdiff/0.2.1/diffdiff.py
     
     DIFFS=( ~{sep=' ' diffs} )
     for FILE in "${DIFFS[@]}"
@@ -55,7 +55,7 @@ task diffdiff_backmask {
     runtime {
 		cpu: 4
 		disks: "local-disk " + 10 + " HDD"
-		docker: "ashedpotatoes/sranwrp:1.1.15"
+		docker: "ashedpotatoes/sranwrp:1.3.0"
 		memory: "8 GB"
 		preemptible: 2
 	}
