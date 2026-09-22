@@ -24,12 +24,13 @@ task diffdiff_usher_mask {
     if [[ "~{ANSI_colors}" == "true" ]]
     then
         python3 /scripts/diffdiff.py diff_paths.txt \
+            -so summary.txt \
             -ao full_alignment.txt \
             -no noteworthy_alignment.txt \
             -mo usher_mask.tsv \
             ~{if dark_background then "--altcolors" else "--colors"} ~{if deuteranopia then "--deuteranopia" else ""}
     else
-        python3 /scripts/diffdiff.py diff_paths.txt -ao full_alignment.txt -no noteworthy_alignment.txt -mo usher_mask.tsv
+        python3 /scripts/diffdiff.py diff_paths.txt -so summary.txt -ao full_alignment.txt -no noteworthy_alignment.txt -mo usher_mask.tsv
     fi
     
     >>>
@@ -41,6 +42,7 @@ task diffdiff_usher_mask {
 		preemptible: 2
 	}
     output {
+        File summary = "summary.txt"
         File full_alignment = "full_alignment.txt"
         File noteworthy_alignment = "noteworthy_alignment.txt"
         File usher_mask = "usher_mask.tsv"
@@ -69,12 +71,13 @@ task diffdiff_backmask {
     if [[ "~{ANSI_colors}" == "true" ]]
     then
         python3 /scripts/diffdiff.py diff_paths.txt \
+            -so summary.txt \
             -ao full_alignment.txt \
             -no noteworthy_alignment.txt \
             -b \
             -c ~{if dark_background then "--altcolors" else ""} ~{if deuteranopia then "--deuteranopia" else ""}
     else
-        python3 /scripts/diffdiff.py diff_paths.txt -ao full_alignment.txt -no noteworthy_alignment.txt -b
+        python3 /scripts/diffdiff.py diff_paths.txt -so summary.txt -ao full_alignment.txt -no noteworthy_alignment.txt -b
     fi
     
     >>>
@@ -86,6 +89,7 @@ task diffdiff_backmask {
 		preemptible: 2
 	}
     output {
+        File summary = "summary.txt"
         File full_alignment = "full_alignment.txt"
         File noteworthy_alignment = "noteworthy_alignment.txt"
         Array[File] backmasked_diffs = glob("*.backmask.diff")
@@ -113,6 +117,7 @@ workflow DiffDiff {
     }
 
     output {
+        File summary = select_first([diffdiff_backmask.summary, diffdiff_usher_mask.summary])
         File full_alignment = select_first([diffdiff_backmask.full_alignment, diffdiff_usher_mask.full_alignment])
         File noteworthy_positions_alignment = select_first([diffdiff_backmask.noteworthy_alignment, diffdiff_usher_mask.noteworthy_alignment])
         File? usher_mask = diffdiff_usher_mask.usher_mask
